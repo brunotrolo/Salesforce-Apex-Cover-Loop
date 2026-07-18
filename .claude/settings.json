@@ -24,12 +24,12 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Bash|PowerShell",
+        "matcher": "Bash|PowerShell|Write|Edit",
         "hooks": [
           {
             "type": "command",
             "command": "node .claude/skills/apex-test-loop/scripts/guard.mjs",
-            "statusMessage": "apex-test-loop: checando comando destrutivo"
+            "statusMessage": "apex-test-loop: checando acao destrutiva"
           }
         ]
       }

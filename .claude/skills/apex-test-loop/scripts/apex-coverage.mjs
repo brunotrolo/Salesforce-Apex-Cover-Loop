@@ -28,13 +28,19 @@ function arg(name, def = undefined) {
 const className = arg('class');
 const testName = arg('test') || (className ? `${className}Test` : undefined);
 const org = arg('org');
-const doDeploy = !!arg('deploy', false);
+const doDeploy = !!arg('deploy', false); // deploy classe de producao + teste
+const testOnly = !!arg('test-only', false); // deploy SOMENTE a classe de teste (recomendado)
 const extra = arg('extra'); // "ApexClass:Foo,ApexClass:Bar"
+const willDeploy = doDeploy || testOnly;
 
 if (!className || !testName) {
   console.error(
     'Uso: node apex-coverage.mjs --class <ApexClass> [--test <TestClass>] ' +
-      '[--org <alias>] [--deploy] [--extra ApexClass:Foo,ApexClass:Bar]'
+      '[--org <alias>] [--test-only | --deploy] [--extra ApexClass:Foo,ApexClass:Bar]\n' +
+      '  --test-only  deploy SOMENTE a classe de teste (recomendado: a classe de\n' +
+      '               producao ja esta na org e NAO deve ser reenviada/sobrescrita).\n' +
+      '  --deploy     deploy da classe de producao + teste (use so se a classe de\n' +
+      '               producao e nova ou mudou legitimamente).'
   );
   process.exit(2);
 }
@@ -83,16 +89,22 @@ function emit(obj, exitCode) {
 }
 
 // ---------------------------------------------------------------------------
-// 1) Deploy opcional da classe + teste (+ extras)
+// 1) Deploy opcional. Por padrao (--test-only) envia SOMENTE a classe de teste,
+//    porque a classe de producao ja esta na org e nao deve ser reenviada nem
+//    sobrescrita. --deploy (produção + teste) so para classe nova/alterada.
+//    --test-level NoTestRun evita rodar TODOS os testes da org so por deployar
+//    (os testes rodam separadamente no passo 2).
 // ---------------------------------------------------------------------------
-if (doDeploy) {
-  const meta = [`ApexClass:${className}`, `ApexClass:${testName}`];
+if (willDeploy) {
+  const meta = testOnly
+    ? [`ApexClass:${testName}`]
+    : [`ApexClass:${className}`, `ApexClass:${testName}`];
   if (typeof extra === 'string') {
     for (const m of extra.split(',')) if (m.trim()) meta.push(m.trim());
   }
   const dArgs = ['project', 'deploy', 'start'];
   for (const m of meta) dArgs.push('--metadata', m);
-  dArgs.push('--json', ...orgArgs);
+  dArgs.push('--test-level', 'NoTestRun', '--json', ...orgArgs);
 
   const d = runSf(dArgs);
   const dj = parseJsonLoose(d.stdout || '');
@@ -123,6 +135,13 @@ if (doDeploy) {
       }
     }
 
+    // A falha e "culpa" do teste, ou de dependencia/classe de producao?
+    const testFile = testName.toLowerCase();
+    const testCaused = failures.some((f) => String(f.file || '').toLowerCase().includes(testFile));
+    const prodOrDepCaused = failures.some(
+      (f) => !String(f.file || '').toLowerCase().includes(testFile)
+    );
+
     emit(
       {
         phase: 'deploy',
@@ -130,6 +149,17 @@ if (doDeploy) {
         deployErrors: failures.length
           ? failures
           : [{ problem: dj?.message || 'Deploy falhou. Veja "raw".' }],
+        // Sinaliza para o agente NAO recriar/apagar/stubar a classe de producao.
+        blockedByDependency: prodOrDepCaused && !testCaused,
+        hint:
+          prodOrDepCaused && !testCaused
+            ? 'A falha NAO e da classe de teste, e da classe de producao ou de uma ' +
+              'dependencia (metadado/objeto/classe faltando ou que nao compila). NAO ' +
+              'recrie, apague, sobrescreva nem crie stubs da classe de producao. Reporte ' +
+              'como "bloqueada" e ofereca ao usuario: (a) rodar so o teste se a producao ' +
+              'ja estiver na org; (b) trazer a dependencia com "sf project retrieve start"; ' +
+              '(c) apontar a org correta.'
+            : 'Erro provavelmente na classe de TESTE — ajuste o teste e rode de novo.',
         raw: failures.length ? undefined : (d.stdout || d.stderr || '').slice(0, 4000),
       },
       1
@@ -213,7 +243,7 @@ if (entry) {
 emit(
   {
     phase: 'test',
-    deploySucceeded: doDeploy ? true : undefined,
+    deploySucceeded: willDeploy ? true : undefined,
     testOutcome: summary.outcome || (failures.length ? 'Failed' : 'Passed'),
     testsRan: summary.testsRan ?? tests.length,
     passing: summary.passing,
