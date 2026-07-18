@@ -7,7 +7,10 @@ description: >-
   real e alta (meta padrao >= 99%). Use quando o usuario pedir para "criar/gerar
   classe de teste Apex", "cobrir a classe X com testes", "aumentar a cobertura",
   ou invocar /apex-test-loop <NomeDaClasse>. O foco e cobertura por CENARIOS
-  REAIS com asserts significativos -- nunca inflar a porcentagem.
+  REAIS com asserts significativos -- nunca inflar a porcentagem. Oferece um
+  MODO GUIADO (passo a passo, linguagem simples, para leigos), acionado por
+  --guiado/--passo-a-passo ou por pedidos como "me ensine", "sou iniciante",
+  "nunca usei isso".
 ---
 
 # Apex Test Loop — Loop agente de cobertura de testes Apex
@@ -23,6 +26,17 @@ O usuario informa a classe de producao, por exemplo:
 `/apex-test-loop AccountService` ou "crie a classe de teste para AccountService".
 
 Se o nome nao foi dado, pergunte qual classe cobrir antes de começar.
+
+### Dois modos de execucao
+
+- **Automatico (padrao)**: roda o loop inteiro sozinho e apresenta o resultado no
+  fim. Use quando o usuario ja conhece o processo.
+- **Guiado (passo a passo, para leigos)**: conduz UMA etapa por vez, em linguagem
+  simples, ensinando o conceito e **pedindo confirmacao** antes de acoes que mexem
+  na org. Entre neste modo quando o usuario usar `--guiado`/`--passo-a-passo`, ou
+  disser coisas como "me ensine", "passo a passo", "sou iniciante", "nunca usei
+  isso". Na duvida sobre o nivel do usuario, **ofereca** o modo guiado antes de
+  começar. O roteiro completo esta em `references/guided-mode.md`.
 
 ## Passo 0 — Contexto (rodar UMA vez, antes do loop)
 
@@ -115,8 +129,25 @@ Checklist completo em `references/quality-checklist.md`.
   excecoes, bulk). Se algum hook de testabilidade foi adicionado a producao,
   **destaque isso em separado** para revisao.
 
+## Modo guiado (passo a passo para leigos)
+
+Quando ativado, siga o roteiro de `references/guided-mode.md`. Em resumo:
+
+- **Uma etapa por vez, em portugues simples.** Explique o QUE e o PORQUE de cada
+  passo, mostre o comando que vai rodar e traduza o resultado (sem jargao de JSON).
+- **Pausas obrigatorias para confirmacao** antes de: (a) o **primeiro deploy**
+  (envia codigo para a org do usuario) e (b) **qualquer edicao na classe de
+  producao**. Explique o risco e espere um "ok".
+- **Ensine os conceitos** ao longo do caminho (classe de teste, cobertura, deploy,
+  assert, cenario happy/negativo) — use o glossario do roteiro.
+- **Mostre o progresso** a cada volta do loop (ex.: `72% -> 88% -> 99%`).
+- **As Regras de Ouro continuam valendo.** O modo guiado muda so a forma de
+  conversar; a exigencia de asserts reais e o anti-cheat permanecem inegociaveis.
+
 ## Referencias (leia conforme a necessidade)
 
+- `references/guided-mode.md` — roteiro completo do modo guiado (o que dizer e
+  perguntar em cada etapa, pontos de pausa e glossario para leigos).
 - `references/sf-cli-and-coverage.md` — comandos `sf` crus, flags corretas, formato
   do JSON de cobertura, deploy em scratch org vs sandbox, e detecção de org.
 - `references/testing-dml-and-exceptions.md` — como cobrir `catch`/`DmlException`
