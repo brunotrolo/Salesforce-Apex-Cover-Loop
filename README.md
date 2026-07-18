@@ -35,41 +35,118 @@ ou quando bate uma condicao de parada segura (e ai gera um relatorio para o huma
 - Node 18+ (para o script auxiliar).
 - Um projeto SFDX com a estrutura `force-app/**/classes/`.
 
-## Instalacao
+## Guia para leigos — como instalar e usar
 
-A skill vive em `.claude/skills/apex-test-loop/`. Duas formas de usar:
+Nao precisa ser especialista. O Claude Code carrega skills **automaticamente** a
+partir da pasta `.claude/skills/` do projeto. Escolha o seu caminho abaixo.
 
-1. **Por projeto** — copie a pasta `.claude/skills/apex-test-loop` para dentro do
-   seu projeto Salesforce:
-   ```bash
-   cp -R .claude/skills/apex-test-loop /caminho/do/seu-projeto-sfdx/.claude/skills/
-   ```
-2. **Global (todos os projetos)** — copie para o seu diretorio de skills do usuario:
-   ```bash
-   cp -R .claude/skills/apex-test-loop ~/.claude/skills/
-   ```
+> **Onde o loop roda de verdade?** O ciclo de cobertura depende do **Salesforce CLI
+> (`sf`)** conectado a uma org. Isso funciona de forma simples no **Claude Code via
+> CLI (no seu computador)**. Na **Web** (claude.ai/code) ha uma limitacao importante
+> — explicada no fim desta secao.
 
-Abra o Claude Code no projeto Salesforce e a skill fica disponivel.
+### Caminho A — Claude Code via CLI (no seu computador) — recomendado
 
-## Uso
+**1) Instale o que o loop precisa (uma vez so):**
 
-No Claude Code, dentro do projeto Salesforce:
+- Salesforce CLI: veja https://developer.salesforce.com/tools/salesforcecli
+- Conecte a sua org (abre o navegador para login):
+  ```bash
+  sf org login web --alias minhaOrg
+  ```
+- Node 18+ (para o script auxiliar): confira com `node --version`.
+
+**2) Coloque a skill no lugar certo.** A estrutura precisa ficar exatamente assim,
+dentro do seu projeto Salesforce (a pasta `.claude` comeca com ponto e pode ficar
+"invisivel" no explorador de arquivos):
+
+```
+meu-projeto-salesforce/
+└── .claude/
+    └── skills/
+        └── apex-test-loop/
+            ├── SKILL.md
+            ├── scripts/
+            └── references/
+```
+
+Copie a pasta inteira `apex-test-loop` (deste repositorio) para la:
+
+```bash
+# por PROJETO (vale so nesse projeto):
+cp -R .claude/skills/apex-test-loop /caminho/do/seu-projeto-sfdx/.claude/skills/
+
+# OU global (vale em TODOS os seus projetos no seu computador):
+cp -R .claude/skills/apex-test-loop ~/.claude/skills/
+```
+
+**3) Abra o Claude Code dentro do projeto.** No terminal, entre na pasta do projeto
+e rode:
+
+```bash
+claude
+```
+
+Ao abrir, ele varre `.claude/skills/` e ja carrega a skill. Se voce editar o
+`SKILL.md` com o Claude aberto, a mudanca e detectada sozinha — **nao existe** um
+comando "recarregar skills".
+
+**4) Confira se a skill apareceu (opcional).** Dentro do chat do Claude Code, digite:
+
+```
+/skills
+```
+
+Isso abre um menu com as skills disponiveis; a `apex-test-loop` deve estar na lista.
+
+**5) Dispare o loop.** Informe uma classe Apex real do seu projeto — das duas formas
+funciona:
 
 ```
 /apex-test-loop AccountService
 ```
 
-ou em linguagem natural: **"crie a classe de teste para AccountService"** /
-**"aumente a cobertura da classe AccountService"**. O agente localiza a classe,
-escreve/melhora `AccountServiceTest`, faz deploy, roda os testes e itera ate a meta.
+ou, em linguagem natural:
 
-Para mudar a org alvo ou incluir utilitarios no deploy, o agente usa o script:
+> "crie a classe de teste para a AccountService"
+> "aumente a cobertura da classe AccountService"
 
-```bash
-node .claude/skills/apex-test-loop/scripts/apex-coverage.mjs \
-  --class AccountService --test AccountServiceTest --deploy \
-  --org minhaOrg --extra ApexClass:TestDataFactory
-```
+O Claude assume o papel de Loop Agent: acha a classe, escreve/melhora a
+`AccountServiceTest`, faz o deploy, roda os testes com cobertura e repete o ciclo
+ate a meta (`>= 99%`) — ou para e explica se travar em algo.
+
+> Dica: para apontar outra org ou incluir utilitarios no deploy, o agente usa o
+> script auxiliar por baixo dos panos:
+> ```bash
+> node .claude/skills/apex-test-loop/scripts/apex-coverage.mjs \
+>   --class AccountService --test AccountServiceTest --deploy \
+>   --org minhaOrg --extra ApexClass:TestDataFactory
+> ```
+
+### Caminho B — Claude Code via Website (claude.ai/code)
+
+**1) Conecte este repositorio.** No claude.ai/code, conecte a conta do GitHub e
+selecione o repositorio que contem `.claude/skills/apex-test-loop/`. Ao iniciar uma
+sessao, o Claude clona o repo e **carrega automaticamente** as skills que estao em
+`.claude/skills/` do projeto (skills pessoais em `~/.claude/skills/` **nao** valem na
+Web — precisam estar no repositorio).
+
+**2) Dispare do mesmo jeito.** No chat da sessao web, use `/apex-test-loop
+AccountService` ou peca em linguagem natural, igual ao CLI.
+
+**⚠️ Limitacao importante da Web (leia antes):** a sessao web roda num ambiente na
+nuvem que, por padrao, **nao tem o Salesforce CLI (`sf`) instalado, nao tem a sua org
+autenticada e nao suporta login interativo**. Ou seja, o passo de **deploy + rodar
+testes** do loop **nao funciona na Web sem configuracao extra** do ambiente (script
+de setup para instalar o `sf`, liberacao de rede e credenciais nao-interativas).
+
+Na pratica:
+- Use a **Web** para escrever, revisar e ajustar a skill e as classes de teste.
+- Rode o **loop de cobertura de verdade no CLI local** (Caminho A), onde o `sf` esta
+  instalado e conectado a sua org.
+- Se voce realmente precisa rodar na Web, e necessario configurar o ambiente da
+  sessao (instalar o `sf` via script de setup, ajustar a politica de rede e fornecer
+  credenciais da org de forma nao-interativa). Isso e trabalho de setup avancado.
 
 ## Estrutura
 
