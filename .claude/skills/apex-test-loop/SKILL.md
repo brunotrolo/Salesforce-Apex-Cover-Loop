@@ -69,11 +69,20 @@ Se o nome nao foi dado, pergunte qual classe cobrir antes de começar.
   isso". Na duvida sobre o nivel do usuario, **ofereca** o modo guiado antes de
   começar. O roteiro completo esta em `references/guided-mode.md`.
 
-## Passo 0 — Contexto (rodar UMA vez, antes do loop)
+## Passo 0 — Contexto e SEGURANCA (rodar UMA vez, antes do loop)
+
+**Antes de tudo — checagem de seguranca (obrigatoria):**
+- Rode `git status` para partir de uma arvore limpa e saber o que muda.
+- A classe de producao `<Classe>.cls` e **somente leitura** para esta skill. Voce
+  nao faz backup "para poder mexer" — voce simplesmente **nao mexe**. Se, no fim,
+  algo tivesse mesmo que mudar na producao (so o hook de DML), isso e proposto ao
+  humano, nunca aplicado direto. Nunca a delete, mova, renomeie, sobrescreva nem
+  crie "stub" no lugar dela (releia a secao 🚫 NUNCA FACA).
 
 1. **Localizar a classe**: busque `**/classes/<Classe>.cls` dentro de `force-app`
    (ou do(s) `packageDirectories` do `sfdx-project.json`). Se houver mais de uma,
-   confirme com o usuario. Leia a classe **inteira**.
+   confirme com o usuario. Leia a classe **inteira** — a versao REAL do repositorio,
+   nunca uma versao recriada/modificada.
 2. **Mapear o que precisa ser coberto**: metodos, ramos (`if/else`, ternario,
    `switch`), loops, `try/catch`, DML (insert/update/delete/upsert), SOQL/SOSL,
    chamadas a outras classes, `@AuraEnabled`/`@InvocableMethod`/web services,
@@ -89,7 +98,13 @@ Se o nome nao foi dado, pergunte qual classe cobrir antes de começar.
 4. **Descobrir a org alvo**: `sf config get target-org` (ou pergunte o alias).
    Confirme que ha org autenticada: `sf org display`. Se o `sf` nao estiver
    instalado/autenticado, pare e oriente o usuario.
-5. **Baseline (se o teste ja existe)**: quando `<Classe>Test.cls` ja existir,
+5. **Dependencias: repo vs org.** A classe de producao ja costuma estar **na org**
+   (com suas dependencias: objetos custom, Custom Metadata, outras classes). O loop
+   deploya **somente a classe de teste** (`--test-only`) — nao reenvia a producao.
+   Se a classe referencia metadados que nao estao no repo local, tudo bem: eles ja
+   estao na org. So traga algo com `sf project retrieve start` se realmente faltar
+   na org (nunca recrie do nada).
+6. **Baseline (se o teste ja existe)**: quando `<Classe>Test.cls` ja existir,
    leia-a e rode o script UMA vez **sem alterar nada** para medir a cobertura
    atual. Dai **melhore a classe existente** — preserve os testes bons, complete
    os cenarios que faltam. Nao reescreva do zero sem motivo.
@@ -106,24 +121,34 @@ Se o nome nao foi dado, pergunte qual classe cobrir antes de começar.
    mapeados no passo 0 — cada caminho relevante vira um metodo `@IsTest` com
    **assert significativo** (veja as Regras de Ouro abaixo).
 
-2. **Deploy + rodar teste com cobertura** usando o script auxiliar (determinístico):
+2. **Deploy do TESTE + rodar cobertura** usando o script auxiliar (determinístico).
+   Use **`--test-only`**: envia somente a classe de teste, porque a classe de
+   producao ja esta na org e **nao deve ser reenviada nem sobrescrita**:
 
    ```bash
    node .claude/skills/apex-test-loop/scripts/apex-coverage.mjs \
-     --class <Classe> --test <Classe>Test --deploy [--org <alias>] \
+     --class <Classe> --test <Classe>Test --test-only [--org <alias>] \
      [--extra ApexClass:TestDataFactory]
    ```
 
-   Ele faz o deploy da classe + teste (+ extras), roda o teste de forma sincrona
-   e imprime um JSON compacto: `coveredPercent`, `uncoveredLines`, `failures`.
-   Se o script nao rodar no ambiente do usuario, use os comandos `sf` crus de
-   `references/sf-cli-and-coverage.md` (mesmo efeito).
+   Ele deploya so o teste (+ extras), roda de forma sincrona e imprime um JSON
+   compacto: `coveredPercent`, `uncoveredLines`, `failures`. Use `--deploy` (produção
+   + teste) **somente** se a classe de producao for nova/alterada legitimamente —
+   o que, nesta skill, quase nunca acontece. Se o script nao rodar no ambiente do
+   usuario, use os comandos `sf` crus de `references/sf-cli-and-coverage.md`.
 
 3. **Ler o resultado**:
-   - `phase: "deploy"` com `deploySucceeded: false` → **erro de compilação**.
-     Corrija o teste conforme `deployErrors[].problem`/`line` e volte ao passo 2.
+   - `phase: "deploy"` + `blockedByDependency: true` → a falha e da **classe de
+     producao ou de uma dependencia** (metadado/objeto/classe faltando ou que nao
+     compila), **nao do teste**. Siga o `hint`: **NAO recrie, apague, sobrescreva
+     nem stube a producao**. Reporte como "classe bloqueada" e ofereca ao usuario:
+     (a) rodar so o teste se a producao ja estiver na org; (b) trazer a dependencia
+     com `sf project retrieve start`; (c) apontar a org correta. **Pare o loop** ate
+     o humano decidir.
+   - `phase: "deploy"` + falha na **classe de teste** → erro de compilação do teste.
+     Corrija o TESTE conforme `deployErrors[].problem`/`line` e volte ao passo 2.
    - `failures` nao vazio → algum assert/dado falhou. Leia `message`/`stackTrace`,
-     corrija e volte ao passo 2. **Nunca** remova o assert só para o teste passar.
+     corrija **o teste** e volte ao passo 2. **Nunca** remova o assert só para passar.
    - Passou → observe `coveredPercent` e `uncoveredLines`.
 
 4. **Decidir**:

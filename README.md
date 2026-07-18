@@ -194,9 +194,14 @@ org/registros e bloqueado em **tres camadas independentes**, ja incluidas no
    qualquer acao.
 2. **Regras `permissions.deny`** — bloqueio duro (sem aprovacao possivel) de
    `sf project delete`, `sf org delete` e `sf data delete` (Bash e PowerShell).
-3. **Hook `PreToolUse` (`scripts/guard.mjs`)** — inspeciona o comando inteiro e
-   nega tambem o que as regras de prefixo nao alcancam: deploy destrutivo
-   (`--pre`/`--post-destructive-changes`) e exclusao de arquivos `.cls`/`.cls-meta.xml`.
+3. **Hook `PreToolUse` (`scripts/guard.mjs`)** — inspeciona cada acao e nega tambem
+   o que as regras de prefixo nao alcancam:
+   - **comandos** destrutivos (deploy com `--pre`/`--post-destructive-changes`,
+     `rm`/`del`/`Remove-Item` de `.cls`/`.cls-meta.xml`);
+   - **escrita de arquivo** (`Write`/`Edit`) na **classe de PRODUCAO** — foi o vetor
+     do bug real (a classe de producao foi sobrescrita pelo tool Write). So e
+     permitido escrever a classe de **TESTE** (nome comeca/termina com `Test`) ou o
+     `TestDataFactory`.
 
 Se voce ja tem `.claude/settings.json` no seu projeto, **mescle** o bloco `deny` e o
 `hooks.PreToolUse` (nao substitua o arquivo). O guard usa o Node, ja exigido pela
@@ -213,10 +218,11 @@ skill.
 > skill, sem sequer oferecer aprovacao.
 
 > Dica: para apontar outra org ou incluir utilitarios no deploy, o agente usa o
-> script auxiliar por baixo dos panos:
+> script auxiliar por baixo dos panos. Note o **`--test-only`**: envia so a classe
+> de teste, porque a de producao ja esta na org e nao deve ser reenviada:
 > ```bash
 > node .claude/skills/apex-test-loop/scripts/apex-coverage.mjs \
->   --class AccountService --test AccountServiceTest --deploy \
+>   --class AccountService --test AccountServiceTest --test-only \
 >   --org minhaOrg --extra ApexClass:TestDataFactory
 > ```
 
@@ -252,7 +258,7 @@ Na pratica:
   SKILL.md                          # o loop, as regras de ouro e a condicao de parada
   scripts/
     apex-coverage.mjs               # deploy + run test + parse -> JSON com linhas nao cobertas
-    guard.mjs                       # hook PreToolUse: bloqueia comandos destrutivos
+    guard.mjs                       # hook PreToolUse: bloqueia comandos destrutivos + escrita na producao
   references/
     guided-mode.md                  # roteiro do modo guiado (passo a passo para leigos)
     sf-cli-and-coverage.md          # comandos sf, flags e formato do JSON de cobertura

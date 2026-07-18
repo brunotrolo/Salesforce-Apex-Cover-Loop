@@ -59,8 +59,11 @@ Prefira este nivel ao Nivel 3 sempre que a classe permitir injecao.
 So use se os niveis 1 e 2 forem inviaveis, e apos ~2 iteracoes sem sucesso. Muitos
 times **proibem** logica de teste em codigo de producao — por isso:
 
-- **Confirme com o humano** antes de commitar (ou deixe claramente sinalizado no
-  relatorio final para revisao). Nao faca silenciosamente.
+- **O agente NAO aplica isto sozinho.** As travas de seguranca da skill (guard
+  `PreToolUse`) **bloqueiam qualquer escrita na classe de producao**. Entao, neste
+  Nivel 3, o agente **apresenta o diff exato** (as poucas linhas do hook) e **pede
+  ao humano** para aplicar — quem edita a producao e uma pessoa, com revisao. Nunca
+  contorne a trava.
 - Mantenha o hook **inerte em producao**, guardado por `Test.isRunningTest()`:
 
 ```apex
