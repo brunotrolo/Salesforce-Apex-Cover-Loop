@@ -138,13 +138,21 @@ Se o nome nao foi dado, pergunte qual classe cobrir antes de começar.
    usuario, use os comandos `sf` crus de `references/sf-cli-and-coverage.md`.
 
 3. **Ler o resultado**:
-   - `phase: "deploy"` + `blockedByDependency: true` → a falha e da **classe de
-     producao ou de uma dependencia** (metadado/objeto/classe faltando ou que nao
-     compila), **nao do teste**. Siga o `hint`: **NAO recrie, apague, sobrescreva
-     nem stube a producao**. Reporte como "classe bloqueada" e ofereca ao usuario:
-     (a) rodar so o teste se a producao ja estiver na org; (b) trazer a dependencia
-     com `sf project retrieve start`; (c) apontar a org correta. **Pare o loop** ate
-     o humano decidir.
+   - `phase: "deploy"` + `blockedByDependency: true` → a falha e de uma **dependencia**
+     (objeto `__c`, Custom Metadata `__mdt`, outra classe) que nao existe no ambiente
+     — **nao da classe de teste**. **NUNCA** recrie, apague ou sobrescreva a **classe
+     sob teste**. Para as DEPENDENCIAS, distinga o cenario:
+     - **Uso real (voce tem a org com o schema):** nao crie nada. Ofereça: (a) rodar
+       so o teste com `--test-only` se a producao ja estiver na org; (b) trazer o que
+       falta com `sf project retrieve start`; (c) apontar a org correta.
+     - **Dev/treino da skill (sem a org completa):** ofereça o **modo scaffold** —
+       criar o MINIMO das dependencias faltantes (arquivos NOVOS) para a classe
+       compilar e o teste rodar. **So faca com sinal explicito** do usuario
+       (`--scaffold`, "estou treinando/sem a org", ou confirmacao da opcao). Lembre:
+       `__c`/`__mdt` sao **metadata XML**, nao Apex. Siga `references/scaffolding-
+       dependencies.md`. Scaffold cria arquivos NOVOS e marcados — a classe sob teste
+       permanece intocada.
+     Sem sinal de scaffold, **pare e ofereca as opcoes** — nao invente stubs sozinho.
    - `phase: "deploy"` + falha na **classe de teste** → erro de compilação do teste.
      Corrija o TESTE conforme `deployErrors[].problem`/`line` e volte ao passo 2.
    - `failures` nao vazio → algum assert/dado falhou. Leia `message`/`stackTrace`,
@@ -259,6 +267,9 @@ Quando ativado, siga o roteiro de `references/guided-mode.md`. Em resumo:
 - `references/callouts-and-async.md` — `Test.setMock` para callouts HTTP/SOAP,
   padroes de `@future`/Queueable/Batch/Schedulable/Platform Events, e a pegadinha
   da `AuraHandledException`.
+- `references/scaffolding-dependencies.md` — modo dev/treino: criar o MINIMO das
+  dependencias faltantes (`__c`/`__mdt` como metadata XML, classes como stub novo)
+  sem tocar na classe sob teste.
 - `references/quality-checklist.md` — matriz de cenarios, exigencias de assert,
   nomenclatura e anti-patterns a evitar.
 - `references/templates/` — esqueleto de classe de teste e do `.cls-meta.xml`.

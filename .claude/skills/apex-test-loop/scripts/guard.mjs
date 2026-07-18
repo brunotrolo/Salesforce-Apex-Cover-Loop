@@ -19,6 +19,8 @@
 // essenciais.
 // ---------------------------------------------------------------------------
 
+import { existsSync } from 'node:fs';
+
 // --- Camada de COMANDOS ----------------------------------------------------
 export const DESTRUCTIVE_RULES = [
   {
@@ -53,44 +55,56 @@ export function classify(cmd) {
 }
 
 // --- Camada de ESCRITA DE ARQUIVO ------------------------------------------
-// Bloqueia escrever/editar a classe de PRODUCAO. A skill so pode escrever a
-// classe de TESTE (nome comeca ou termina com "Test") ou o TestDataFactory.
-export function classifyWrite(filePath) {
+// Bloqueia SOBRESCREVER/EDITAR a classe/trigger de PRODUCAO que JA EXISTE (foi
+// o vetor do bug: a classe sob teste foi sobrescrita). Regras:
+//  - arquivo de teste (nome comeca/termina com "test") ou factory  -> permitido;
+//  - .cls/.trigger de producao que NAO existe ainda (arquivo NOVO) -> permitido
+//    (criar um stub de dependencia faltante nunca destroi nada — habilita o modo
+//     scaffold);
+//  - .cls/.trigger de producao que JA EXISTE                       -> BLOQUEADO
+//    (nunca sobrescrever/editar a producao existente, incl. a classe sob teste).
+// `existsOverride` (opcional) permite testar sem tocar no disco.
+export function classifyWrite(filePath, existsOverride) {
   const p = String(filePath || '');
   const lower = p.toLowerCase();
 
-  const isMeta = lower.endsWith('-meta.xml');
   const isApexClass = lower.endsWith('.cls') || lower.endsWith('.cls-meta.xml');
   const isTrigger = lower.endsWith('.trigger') || lower.endsWith('.trigger-meta.xml');
-  if (!isApexClass && !isTrigger) return { blocked: false };
+  if (!isApexClass && !isTrigger) return { blocked: false }; // metadata (.object/.field/.md) e outros: ok
 
-  // Trigger e sempre codigo de producao — a skill nunca escreve triggers.
-  if (isTrigger) {
-    return {
-      blocked: true,
-      why: 'escrita em arquivo de TRIGGER de producao (' + baseName(p) + ')',
-    };
-  }
-
-  // Nome-base da classe, sem caminho e sem extensao/-meta.
-  const name = baseName(lower).replace(/-meta\.xml$/, '').replace(/\.cls$/, '');
-  const isTestName = /^test/.test(name) || /test$/.test(name); // comeca ou termina com "test"
+  // Classe/trigger de TESTE (ou factory de teste): sempre pode criar/editar.
+  const name = baseName(lower)
+    .replace(/-meta\.xml$/, '')
+    .replace(/\.(cls|trigger)$/, '');
+  const isTestName = /^test/.test(name) || /test$/.test(name);
   const isFactory = /factory$/.test(name) || name.includes('testdata');
   if (isTestName || isFactory) return { blocked: false };
+
+  // Producao: so bloqueia se o arquivo JA EXISTE (sobrescrita/edicao destrutiva).
+  const exists = existsOverride !== undefined ? existsOverride : fileExists(p);
+  if (!exists) return { blocked: false }; // arquivo novo -> criar stub/scaffold e permitido
 
   return {
     blocked: true,
     why:
-      'sobrescrita da classe de PRODUCAO ' +
-      name +
-      (isMeta ? '.cls-meta.xml' : '.cls') +
-      ' (a skill so cria/edita a classe de TESTE; produção e intocavel)',
+      'sobrescrita/edicao da classe/trigger de PRODUCAO existente ' +
+      baseName(p) +
+      ' (a skill nunca altera producao existente — incl. a classe sob teste; ' +
+      'so cria/edita a classe de TESTE ou arquivos NOVOS de scaffold)',
   };
 }
 
 function baseName(p) {
   const parts = String(p).split(/[\\/]/);
   return parts[parts.length - 1] || String(p);
+}
+
+function fileExists(p) {
+  try {
+    return existsSync(p);
+  } catch {
+    return false;
+  }
 }
 
 // --- Mensagem e hook -------------------------------------------------------

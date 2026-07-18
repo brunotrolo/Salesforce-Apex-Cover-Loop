@@ -137,51 +137,40 @@ AccountService"**, **"sou iniciante"**. No modo guiado a qualidade nao muda — 
 jeito de conversar (ele ensina enquanto faz). Quando ja tiver pratica, use sem o
 `--guiado` para rodar o ciclo inteiro de uma vez.
 
-### O loop pede aprovacao a cada iteracao — como rodar sem interrupcao
+### Rodar sem ficar aprovando a cada comando
 
 Por padrao, o Claude Code pede confirmacao antes de rodar comandos que mudam algo
-fora do chat (aqui, cada deploy/teste na sua org). Este repositorio ja vem com um
-**`.claude/settings.json`** que libera especificamente os comandos que a skill
-`apex-test-loop` precisa repetir a cada volta do loop:
+fora do chat. Para o loop rodar liso, o `.claude/settings.json` deste repositorio
+**libera geral** o trabalho normal — **mantendo** as travas de seguranca ativas:
 
 ```json
 {
   "permissions": {
-    "allow": [
-      "Bash(node .claude/skills/apex-test-loop/scripts/apex-coverage.mjs *)",
-      "Bash(sf project deploy start *)",
-      "Bash(sf apex run test *)",
-      "Bash(sf org display*)",
-      "Bash(sf config get*)",
-      "PowerShell(node .claude/skills/apex-test-loop/scripts/apex-coverage.mjs *)",
-      "PowerShell(sf project deploy start *)",
-      "PowerShell(sf apex run test *)",
-      "PowerShell(sf org display*)",
-      "PowerShell(sf config get*)"
+    "allow": ["Bash(*)", "PowerShell(*)", "Write", "Edit"],
+    "deny": [
+      "Bash(sf project delete *)", "Bash(sf org delete *)", "Bash(sf data delete *)",
+      "PowerShell(sf project delete *)", "PowerShell(sf org delete *)", "PowerShell(sf data delete *)"
     ]
-  }
+  },
+  "hooks": { "PreToolUse": [ /* guard.mjs — ver abaixo */ ] }
 }
 ```
 
-Com isso, o loop roda do inicio ao fim **sem interromper a cada iteracao** — mas o
-"raio de acao" livre fica limitado so a esses comandos. Qualquer coisa fora do
-escopo da skill (`git push --force`, `rm -rf`, `sf org delete`, editar arquivos
-fora do projeto etc.) continua pedindo aprovacao normalmente, como sempre.
+Por que isso e seguro (confirmado na doc oficial do Claude Code):
+- **`deny` sempre vence o `allow`** — os comandos destrutivos seguem bloqueados,
+  mesmo com o `allow` amplo.
+- **O hook `PreToolUse` roda ANTES do `allow`** e pode bloquear — entao o guarda que
+  impede apagar/sobrescrever a producao **continua valendo**, mesmo liberando geral.
 
-> ⚠️ **No Windows, `Bash` e `PowerShell` sao categorias de permissao
-> DIFERENTES.** Se voce nao tem o Git Bash instalado, o Claude Code usa o
-> PowerShell como shell padrao — e regras `Bash(...)` **nao** cobrem comandos
-> rodados por ele (por isso o arquivo acima ja inclui as duas versoes, `Bash(...)`
-> e `PowerShell(...)`, para os mesmos comandos). Se mesmo assim continuar pedindo
-> aprovacao a cada comando, confirme qual shell esta ativo com `claude --debug`
-> (procure por "Using shell: ..." no log) — ou instale o Git Bash e passe a usar
-> as regras `Bash(...)`.
+Resultado: **sem prompts** no trabalho normal (inclusive no Windows/PowerShell, que
+tinha um bug de `/` vs `\` nas regras escopadas); o que e destrutivo continua barrado.
 
-- Este arquivo e **versionado** (vale para quem clonar o repositorio). Se preferir
-  algo so seu, mova o mesmo conteudo para `.claude/settings.local.json` (nao
-  versionado) em vez de `.claude/settings.json`.
-- Para revisar ou revogar a qualquer momento: edite/apague as linhas em
-  `.claude/settings.json`, ou rode `/permissions` dentro do Claude Code.
+- Arquivo **versionado**. Prefere algo so seu? Ponha o mesmo conteudo em
+  `.claude/settings.local.json` (nao versionado).
+- Quer voltar a pedir aprovacao? Troque `Bash(*)`/`PowerShell(*)` pelas regras
+  escopadas (so os comandos da skill), ou rode `/permissions` no Claude Code.
+- Quer **zero** prompts de tudo (nao so shell)? `"defaultMode": "bypassPermissions"`
+  tambem preserva `deny` + hook — porem e mais amplo; use so em ambiente confiavel.
 
 ### Travas de seguranca (a skill NUNCA apaga a classe de producao)
 
@@ -198,10 +187,11 @@ org/registros e bloqueado em **tres camadas independentes**, ja incluidas no
    o que as regras de prefixo nao alcancam:
    - **comandos** destrutivos (deploy com `--pre`/`--post-destructive-changes`,
      `rm`/`del`/`Remove-Item` de `.cls`/`.cls-meta.xml`);
-   - **escrita de arquivo** (`Write`/`Edit`) na **classe de PRODUCAO** — foi o vetor
-     do bug real (a classe de producao foi sobrescrita pelo tool Write). So e
-     permitido escrever a classe de **TESTE** (nome comeca/termina com `Test`) ou o
-     `TestDataFactory`.
+   - **escrita de arquivo** (`Write`/`Edit`) que **sobrescreve** uma classe/trigger de
+     **PRODUCAO ja existente** — foi o vetor do bug real. O guard bloqueia editar/
+     sobrescrever qualquer `.cls`/`.trigger` que **ja existe** e nao e teste (inclui
+     a classe sob teste). **Criar arquivo NOVO e liberado** (nunca destroi nada) —
+     e o que permite o modo scaffold criar stubs de dependencias faltantes.
 
 Se voce ja tem `.claude/settings.json` no seu projeto, **mescle** o bloco `deny` e o
 `hooks.PreToolUse` (nao substitua o arquivo). O guard usa o Node, ja exigido pela
@@ -265,6 +255,7 @@ Na pratica:
     sf-cli-and-coverage.md          # comandos sf, flags e formato do JSON de cobertura
     testing-dml-and-exceptions.md   # como cobrir catch/DML na ordem certa
     callouts-and-async.md           # Test.setMock (HTTP/SOAP) e @future/Queueable/Batch/Schedulable
+    scaffolding-dependencies.md     # modo dev: criar o minimo de dependencias faltantes (__c/__mdt/classes)
     quality-checklist.md            # matriz de cenarios, exigencia de asserts, anti-patterns
     templates/
       ExampleTest.cls               # esqueleto de classe de teste
@@ -293,3 +284,10 @@ melhorias ja aplicadas (PRs #5–#8) esta la como exemplo do formato.
 - A cobertura lida no loop e a atribuivel a classe de teste dedicada. A metrica
   org-wide (minimo 75% para deploy em producao) e diferente e depende de todos os
   testes da org.
+- **Dependencias faltando (modo dev/treino):** se voce baixou so a classe (sem a org
+  com `__c`/`__mdt`/classes de apoio), o loop nao trava de vez. Em **uso real** ele
+  para e pede para apontar a org com o schema. Em **dev/treino**, com seu ok
+  (`--scaffold` ou "estou treinando, sem a org"), ele cria o **minimo** das
+  dependencias faltantes como **arquivos novos** (`__c`/`__mdt` viram metadata XML,
+  nao Apex) — **sem nunca tocar na classe sob teste**. Detalhes em
+  `references/scaffolding-dependencies.md`. Ideal: uma **scratch org** descartavel.

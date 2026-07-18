@@ -76,4 +76,40 @@ existe tanto no repositorio-casa quanto na copia dentro do seu projeto Salesforc
 - **Melhoria:** `blockedByDependency` + `hint` no script; SKILL.md manda parar e
   oferecer opcoes ao humano.
 
-<!-- A skill anexa novas propostas ABAIXO desta linha, como R-0006, R-0007... -->
+### R-0006 — Modo scaffold: criar o minimo de dependencias faltantes (dev/treino)
+- **Status:** ✅ Aplicada (PR #10)
+- **Data:** 2026-07-18
+- **Gatilho:** Treinando a skill com so a `CardHandler.cls` baixada (sem a org com
+  `Card__c`, `CardBlock__mdt`, `CardsInfo__mdt`), o loop parava e o trabalho nunca
+  terminava.
+- **Problema:** A regra "parar em blockedByDependency" era absoluta demais para o
+  cenario de desenvolvimento; e havia confusao tecnica (tentar stubar `__c`/`__mdt`
+  como Apex, o que e impossivel).
+- **Melhoria:** Modo `scaffold` opt-in que cria o MINIMO das dependencias como
+  **arquivos novos** (`__c`/`__mdt` como metadata XML; classes como stub), sem tocar
+  na classe sob teste. Nova `references/scaffolding-dependencies.md`. Uso real
+  continua parando e oferecendo apontar a org correta.
+
+### R-0007 — Guard bloqueia so SOBRESCRITA de producao existente (permite arquivos novos)
+- **Status:** ✅ Aplicada (PR #10)
+- **Data:** 2026-07-18
+- **Gatilho:** O guard bloqueava QUALQUER escrita em `.cls` de producao, o que
+  impediria ate criar stubs de dependencias faltantes (modo scaffold).
+- **Problema:** O vetor do bug era **sobrescrever** um arquivo existente; criar um
+  arquivo novo nunca destroi nada. A regra estava mais larga que o risco.
+- **Melhoria:** `classifyWrite` passa a bloquear so quando o `.cls`/`.trigger` de
+  producao **ja existe** (via `existsSync`); arquivos novos e classes de teste sao
+  liberados. A classe sob teste (existente) segue protegida. Testado 13/13.
+
+### R-0008 — Liberar geral mantendo as travas (reduzir prompts, sobretudo PowerShell)
+- **Status:** ✅ Aplicada (PR #10)
+- **Data:** 2026-07-18
+- **Gatilho:** No Windows/PowerShell, a allowlist escopada ainda pedia aprovacao para
+  quase tudo (inclui bug conhecido de `/` vs `\`).
+- **Problema:** Allowlist so cobria os 5 comandos da skill; o resto pedia aprovacao.
+- **Melhoria:** `allow` amplo (`Bash(*)`, `PowerShell(*)`, `Write`, `Edit`) mantendo
+  `deny` + hook `PreToolUse` — confirmado na doc que hook e deny continuam ativos
+  (hook roda antes do allow). Sem prompts no trabalho normal; destrutivo segue
+  bloqueado.
+
+<!-- A skill anexa novas propostas ABAIXO desta linha, como R-0009, R-0010... -->

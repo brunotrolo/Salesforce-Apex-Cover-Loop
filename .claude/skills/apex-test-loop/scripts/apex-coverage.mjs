@@ -153,12 +153,13 @@ if (willDeploy) {
         blockedByDependency: prodOrDepCaused && !testCaused,
         hint:
           prodOrDepCaused && !testCaused
-            ? 'A falha NAO e da classe de teste, e da classe de producao ou de uma ' +
-              'dependencia (metadado/objeto/classe faltando ou que nao compila). NAO ' +
-              'recrie, apague, sobrescreva nem crie stubs da classe de producao. Reporte ' +
-              'como "bloqueada" e ofereca ao usuario: (a) rodar so o teste se a producao ' +
-              'ja estiver na org; (b) trazer a dependencia com "sf project retrieve start"; ' +
-              '(c) apontar a org correta.'
+            ? 'A falha NAO e da classe de teste, e de uma dependencia (objeto __c, ' +
+              'Custom Metadata __mdt, ou outra classe) ausente. NUNCA recrie/apague/' +
+              'sobrescreva a CLASSE SOB TESTE. Uso real: ofereca (a) rodar so o teste se ' +
+              'a producao ja estiver na org; (b) "sf project retrieve start"; (c) apontar ' +
+              'a org certa. Dev/treino sem a org: com sinal do usuario (--scaffold), crie o ' +
+              'MINIMO das dependencias como arquivos NOVOS (__c/__mdt sao metadata XML, nao ' +
+              'Apex) — veja references/scaffolding-dependencies.md.'
             : 'Erro provavelmente na classe de TESTE — ajuste o teste e rode de novo.',
         raw: failures.length ? undefined : (d.stdout || d.stderr || '').slice(0, 4000),
       },
