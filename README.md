@@ -23,6 +23,11 @@ ou quando bate uma condicao de parada segura (e ai gera um relatorio para o huma
 - **Sinal deterministico.** Um script auxiliar (`scripts/apex-coverage.mjs`) roda o
   teste, faz o parse do JSON do `sf` e devolve **exatamente as linhas nao cobertas**,
   em vez de o agente adivinhar.
+- **Seguranca contra acoes destrutivas.** A skill so CRIA/edita a classe de TESTE.
+  Apagar, mover ou sobrescrever a classe de producao (no disco ou na org), rodar
+  deploy destrutivo ou excluir org/registros e **proibido em tres camadas**:
+  instrucoes no `SKILL.md`, regras `deny` e um hook `PreToolUse` que inspeciona
+  cada comando (veja "Travas de seguranca" abaixo).
 - **`catch`/DML tratado na ordem certa.** Primeiro forcar falha real com dado
   invalido / `System.runAs`; depois Stub API / injecao de dependencia; e so como
   ultimo recurso um hook `@TestVisible` na classe de producao — sempre sinalizado
@@ -178,6 +183,35 @@ fora do projeto etc.) continua pedindo aprovacao normalmente, como sempre.
 - Para revisar ou revogar a qualquer momento: edite/apague as linhas em
   `.claude/settings.json`, ou rode `/permissions` dentro do Claude Code.
 
+### Travas de seguranca (a skill NUNCA apaga a classe de producao)
+
+A skill so pode **criar/editar a classe de TESTE**. Apagar, mover ou sobrescrever a
+classe de producao (no disco ou na org), rodar deploy destrutivo, ou excluir
+org/registros e bloqueado em **tres camadas independentes**, ja incluidas no
+`.claude/settings.json` deste repositorio:
+
+1. **Instrucoes no `SKILL.md`** — uma secao "🚫 NUNCA FACA" no topo, lida antes de
+   qualquer acao.
+2. **Regras `permissions.deny`** — bloqueio duro (sem aprovacao possivel) de
+   `sf project delete`, `sf org delete` e `sf data delete` (Bash e PowerShell).
+3. **Hook `PreToolUse` (`scripts/guard.mjs`)** — inspeciona o comando inteiro e
+   nega tambem o que as regras de prefixo nao alcancam: deploy destrutivo
+   (`--pre`/`--post-destructive-changes`) e exclusao de arquivos `.cls`/`.cls-meta.xml`.
+
+Se voce ja tem `.claude/settings.json` no seu projeto, **mescle** o bloco `deny` e o
+`hooks.PreToolUse` (nao substitua o arquivo). O guard usa o Node, ja exigido pela
+skill.
+
+> ⚠️ **Limite honesto:** o bloqueio por texto e forte para comandos diretos, mas
+> nao e uma fronteira absoluta — wrappers exoticos (`npx`, `docker exec`), variaveis
+> de ambiente ou substituicao de comando podem, em tese, escapar. Por isso as tres
+> camadas coexistem. Mantenha o habito de revisar o que o agente faz em uma org
+> real, e prefira uma **scratch org** descartavel para os primeiros testes.
+>
+> Para testar o guard voce mesmo: peca ao agente para rodar (por exemplo)
+> `sf project delete source ...` — ele deve ser **bloqueado** com uma mensagem da
+> skill, sem sequer oferecer aprovacao.
+
 > Dica: para apontar outra org ou incluir utilitarios no deploy, o agente usa o
 > script auxiliar por baixo dos panos:
 > ```bash
@@ -218,6 +252,7 @@ Na pratica:
   SKILL.md                          # o loop, as regras de ouro e a condicao de parada
   scripts/
     apex-coverage.mjs               # deploy + run test + parse -> JSON com linhas nao cobertas
+    guard.mjs                       # hook PreToolUse: bloqueia comandos destrutivos
   references/
     guided-mode.md                  # roteiro do modo guiado (passo a passo para leigos)
     sf-cli-and-coverage.md          # comandos sf, flags e formato do JSON de cobertura

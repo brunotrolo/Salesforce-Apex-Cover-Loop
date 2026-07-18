@@ -11,6 +11,28 @@
       "PowerShell(sf apex run test *)",
       "PowerShell(sf org display*)",
       "PowerShell(sf config get*)"
+    ],
+    "deny": [
+      "Bash(sf project delete *)",
+      "Bash(sf org delete *)",
+      "Bash(sf data delete *)",
+      "PowerShell(sf project delete *)",
+      "PowerShell(sf org delete *)",
+      "PowerShell(sf data delete *)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/skills/apex-test-loop/scripts/guard.mjs",
+            "statusMessage": "apex-test-loop: checando comando destrutivo"
+          }
+        ]
+      }
     ]
   }
 }

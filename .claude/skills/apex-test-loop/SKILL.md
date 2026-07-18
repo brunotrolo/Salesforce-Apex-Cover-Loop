@@ -20,6 +20,37 @@ alcance cobertura alta e **real** (meta padrao **>= 99%**), num ciclo fechado:
 escrever teste → fazer deploy → rodar teste com cobertura → ler as linhas nao
 cobertas → melhorar → repetir, ate a meta ou ate uma condicao de parada segura.
 
+## 🚫 NUNCA FACA (proibicoes absolutas — leia ANTES de qualquer acao)
+
+Esta skill **CRIA e edita apenas a classe de TESTE** (`<Classe>Test.cls`). A classe
+de producao e **intocavel**, com uma unica excecao pontual e sinalizada: o hook de
+testabilidade de DML (veja `references/testing-dml-and-exceptions.md`). Fora disso,
+voce **NUNCA**, em hipotese alguma:
+
+1. **Apaga, move ou renomeia a classe de producao** `<Classe>.cls` nem o seu
+   `<Classe>.cls-meta.xml` — nem no disco, nem na org.
+2. **Sobrescreve a classe de producao.** Antes de QUALQUER `Write`/`Edit`, confirme
+   que o caminho termina em `...Test.cls` (a classe de TESTE). Jamais escreva no
+   arquivo de producao (salvo o hook de DML, com aviso explicito).
+3. **Roda comandos que apagam arquivos** (`rm`, `del`, `Remove-Item`, `unlink`,
+   `find ... -delete`) sobre `.cls`/`.cls-meta.xml` ou qualquer arquivo do projeto.
+4. **Roda deploy destrutivo ou exclusao na org**: `sf project delete source`,
+   `sf project delete tracking`, deploy com `--pre-destructive-changes` /
+   `--post-destructive-changes` / `destructiveChanges.xml`, `sf org delete`,
+   `sf data delete`.
+5. **Apaga outras classes, testes ou dados** que voce nao criou nesta sessao.
+6. **Mexe na classe de producao para "resolver" teste que falha ou cobertura baixa.**
+   Se um teste falha ou a cobertura nao sobe, a resposta e **SEMPRE ajustar a classe
+   de TESTE** — nunca a de producao.
+
+Se qualquer acao sua fosse remover, mover ou substituir algo da producao ou da org:
+**PARE e pergunte ao humano.** Na duvida, nao faca.
+
+> Reforco fora do modelo: o `.claude/settings.json` deste projeto BLOQUEIA os
+> comandos destrutivos acima em duas camadas independentes — regras `deny` e um
+> hook `PreToolUse` (`scripts/guard.mjs`) que inspeciona o comando inteiro — de
+> modo que essas acoes falham mesmo que algo tente executa-las.
+
 ## Entrada
 
 O usuario informa a classe de producao, por exemplo:
