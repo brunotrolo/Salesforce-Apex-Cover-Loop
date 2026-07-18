@@ -115,6 +115,19 @@ O Claude assume o papel de Loop Agent: acha a classe, escreve/melhora a
 `AccountServiceTest`, faz o deploy, roda os testes com cobertura e repete o ciclo
 ate a meta (`>= 99%`) — ou para e explica se travar em algo.
 
+**Primeira vez? Use o modo guiado.** Ele conduz **uma etapa por vez**, explica cada
+passo em linguagem simples e **pede sua confirmacao** antes de enviar qualquer coisa
+para a org:
+
+```
+/apex-test-loop AccountService --guiado
+```
+
+ou peca em linguagem natural: **"me ensine passo a passo a criar o teste da
+AccountService"**, **"sou iniciante"**. No modo guiado a qualidade nao muda — so o
+jeito de conversar (ele ensina enquanto faz). Quando ja tiver pratica, use sem o
+`--guiado` para rodar o ciclo inteiro de uma vez.
+
 > Dica: para apontar outra org ou incluir utilitarios no deploy, o agente usa o
 > script auxiliar por baixo dos panos:
 > ```bash
@@ -156,6 +169,7 @@ Na pratica:
   scripts/
     apex-coverage.mjs               # deploy + run test + parse -> JSON com linhas nao cobertas
   references/
+    guided-mode.md                  # roteiro do modo guiado (passo a passo para leigos)
     sf-cli-and-coverage.md          # comandos sf, flags e formato do JSON de cobertura
     testing-dml-and-exceptions.md   # como cobrir catch/DML na ordem certa
     quality-checklist.md            # matriz de cenarios, exigencia de asserts, anti-patterns
