@@ -199,6 +199,40 @@ Checklist completo em `references/quality-checklist.md`.
   excecoes, bulk). Se algum hook de testabilidade foi adicionado a producao,
   **destaque isso em separado** para revisao.
 
+## Fase de retrospectiva (autoaprendizado da skill)
+
+Sempre no **fim de cada run** (sucesso OU parada segura), reflita: *o que nesta
+skill me atrapalhou e poderia ser melhorado?* O objetivo e a skill evoluir com a
+experiencia real — nao encher de ruido.
+
+**So registre proposta quando houve FRICCAO REAL**, por exemplo: o guard bloqueou
+uma acao legitima; o deploy travou por dependencia; foram precisas muitas iteracoes
+sem evoluir; precisou de decisao humana por ambiguidade; uma referencia
+(`references/*.md`) nao cobria o caso; um comando/flag do `sf` estava incorreto;
+um padrao de teste (callout/async/DML) faltou. **Em run limpo, nao registre nada.**
+
+Para cada friccao (no maximo ~3 por run):
+1. Abra `.claude/skills/apex-test-loop/RECOMMENDATIONS.md` e **verifique se ja existe**
+   item sobre o mesmo ponto (aberto ou aplicado). Se existir, **nao duplique** — no
+   maximo adicione uma nota curta.
+2. Senao, **anexe** (abaixo do marcador no fim do arquivo) uma nova entrada com o
+   proximo `R-XXXX`, status `🟡 Proposta`, seguindo o schema do arquivo: gatilho real,
+   problema e melhoria proposta **acionavel** (qual arquivo/regra/passo mudaria).
+3. **Transporte** (a skill roda no projeto do usuario, nao no repo-casa):
+   - O arquivo local ja fica atualizado — informe o caminho ao usuario.
+   - Se o ambiente tiver acesso ao repositorio-casa no GitHub, voce **pode** abrir/
+     atualizar uma Issue com as propostas (nao obrigatorio).
+   - Diga ao usuario: *"registrei N recomendacao(oes); quando quiser, peca para eu
+     ler as recomendacoes e ajustar a skill"*.
+
+> Escrever neste `.md` e permitido (o guard so bloqueia escrita em `.cls`/`.trigger`
+> de producao). **Nunca** transforme uma "melhoria" em desculpa para afrouxar as
+> Regras de Ouro ou as travas de seguranca.
+
+Quando o usuario pedir para **processar** as recomendacoes: para cada `Proposta`,
+decida `🟢 Aprovada` / `⚪ Reprovada` (com motivo) / `✅ Aplicada`; aplique as
+aprovadas na skill; e atualize o status no `RECOMMENDATIONS.md` com o PR/commit.
+
 ## Modo guiado (passo a passo para leigos)
 
 Quando ativado, siga o roteiro de `references/guided-mode.md`. Em resumo:
@@ -228,3 +262,5 @@ Quando ativado, siga o roteiro de `references/guided-mode.md`. Em resumo:
 - `references/quality-checklist.md` — matriz de cenarios, exigencias de assert,
   nomenclatura e anti-patterns a evitar.
 - `references/templates/` — esqueleto de classe de teste e do `.cls-meta.xml`.
+- `RECOMMENDATIONS.md` — livro-razao de melhorias da propria skill (a fase de
+  retrospectiva anexa propostas aqui; o humano aprova/reprova/aplica).

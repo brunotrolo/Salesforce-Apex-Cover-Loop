@@ -256,6 +256,7 @@ Na pratica:
 ```
 .claude/skills/apex-test-loop/
   SKILL.md                          # o loop, as regras de ouro e a condicao de parada
+  RECOMMENDATIONS.md                # livro-razao de melhorias da propria skill (autoaprendizado)
   scripts/
     apex-coverage.mjs               # deploy + run test + parse -> JSON com linhas nao cobertas
     guard.mjs                       # hook PreToolUse: bloqueia comandos destrutivos + escrita na producao
@@ -269,6 +270,20 @@ Na pratica:
       ExampleTest.cls               # esqueleto de classe de teste
       ExampleTest.cls-meta.xml      # metadata da classe de teste
 ```
+
+## Autoaprendizado (a skill sugere melhorias a si mesma)
+
+No fim de cada run **com friccao real** (o guard bloqueou algo, uma dependencia
+travou, precisou de decisao humana, faltou orientacao numa referencia...), a skill
+anexa recomendacoes de melhoria em `.claude/skills/apex-test-loop/RECOMMENDATIONS.md`
+— com um ID, o gatilho real, o problema e a mudanca proposta, no status `🟡 Proposta`.
+Em runs limpos, nao registra nada (evita ruido).
+
+Como o arquivo viaja junto com a skill, ele fica atualizado na copia dentro do seu
+projeto. Quando quiser incorporar, **basta pedir**: *"leia as recomendacoes e ajuste
+a skill se concordar"*. Ai cada item vira `🟢 Aprovada` / `⚪ Reprovada` (com motivo)
+/ `✅ Aplicada` (com o PR), e as aprovadas sao implementadas. O historico das
+melhorias ja aplicadas (PRs #5–#8) esta la como exemplo do formato.
 
 ## Observacoes
 

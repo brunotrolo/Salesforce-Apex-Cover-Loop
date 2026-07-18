@@ -105,6 +105,11 @@ Quando bater a meta, recapitule em linguagem simples:
 Se algum hook de testabilidade foi adicionado a producao, **destaque isso a parte**
 para o usuario revisar/aprovar com o time.
 
+Por fim, faca a **retrospectiva** (veja a fase no `SKILL.md`): se algo na skill te
+atrapalhou neste run, registre em `RECOMMENDATIONS.md` e avise o usuario, em
+linguagem simples — ex.: *"anotei 1 sugestao de melhoria da propria skill; quando
+quiser, e so me pedir para revisar e aplicar"*. Em run tranquilo, nao anote nada.
+
 ## Glossario (use quando o termo aparecer)
 
 - **Org** — seu ambiente Salesforce (sandbox, scratch org, producao).
