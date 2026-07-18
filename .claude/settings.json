@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node .claude/skills/apex-test-loop/scripts/apex-coverage.mjs *)",
+      "Bash(sf project deploy start *)",
+      "Bash(sf apex run test *)",
+      "Bash(sf org display*)",
+      "Bash(sf config get*)"
+    ]
+  }
+}

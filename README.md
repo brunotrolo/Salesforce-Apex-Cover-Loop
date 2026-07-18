@@ -132,6 +132,38 @@ AccountService"**, **"sou iniciante"**. No modo guiado a qualidade nao muda — 
 jeito de conversar (ele ensina enquanto faz). Quando ja tiver pratica, use sem o
 `--guiado` para rodar o ciclo inteiro de uma vez.
 
+### O loop pede aprovacao a cada iteracao — como rodar sem interrupcao
+
+Por padrao, o Claude Code pede confirmacao antes de rodar comandos que mudam algo
+fora do chat (aqui, cada deploy/teste na sua org). Este repositorio ja vem com um
+**`.claude/settings.json`** que libera especificamente os comandos que a skill
+`apex-test-loop` precisa repetir a cada volta do loop:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(node .claude/skills/apex-test-loop/scripts/apex-coverage.mjs *)",
+      "Bash(sf project deploy start *)",
+      "Bash(sf apex run test *)",
+      "Bash(sf org display*)",
+      "Bash(sf config get*)"
+    ]
+  }
+}
+```
+
+Com isso, o loop roda do inicio ao fim **sem interromper a cada iteracao** — mas o
+"raio de acao" livre fica limitado so a esses comandos. Qualquer coisa fora do
+escopo da skill (`git push --force`, `rm -rf`, `sf org delete`, editar arquivos
+fora do projeto etc.) continua pedindo aprovacao normalmente, como sempre.
+
+- Este arquivo e **versionado** (vale para quem clonar o repositorio). Se preferir
+  algo so seu, mova o mesmo conteudo para `.claude/settings.local.json` (nao
+  versionado) em vez de `.claude/settings.json`.
+- Para revisar ou revogar a qualquer momento: edite/apague as linhas em
+  `.claude/settings.json`, ou rode `/permissions` dentro do Claude Code.
+
 > Dica: para apontar outra org ou incluir utilitarios no deploy, o agente usa o
 > script auxiliar por baixo dos panos:
 > ```bash
