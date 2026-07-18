@@ -1,0 +1,126 @@
+---
+name: apex-test-loop
+description: >-
+  Gera ou melhora a classe de teste Apex do Salesforce para UMA classe de
+  producao especifica, rodando um loop auto-corretivo (deploy -> run test ->
+  ler cobertura -> melhorar) via Salesforce CLI (sf) ate atingir cobertura
+  real e alta (meta padrao >= 99%). Use quando o usuario pedir para "criar/gerar
+  classe de teste Apex", "cobrir a classe X com testes", "aumentar a cobertura",
+  ou invocar /apex-test-loop <NomeDaClasse>. O foco e cobertura por CENARIOS
+  REAIS com asserts significativos -- nunca inflar a porcentagem.
+---
+
+# Apex Test Loop — Loop agente de cobertura de testes Apex
+
+Objetivo: dada UMA classe de producao Apex, produzir uma classe de teste que
+alcance cobertura alta e **real** (meta padrao **>= 99%**), num ciclo fechado:
+escrever teste → fazer deploy → rodar teste com cobertura → ler as linhas nao
+cobertas → melhorar → repetir, ate a meta ou ate uma condicao de parada segura.
+
+## Entrada
+
+O usuario informa a classe de producao, por exemplo:
+`/apex-test-loop AccountService` ou "crie a classe de teste para AccountService".
+
+Se o nome nao foi dado, pergunte qual classe cobrir antes de começar.
+
+## Passo 0 — Contexto (rodar UMA vez, antes do loop)
+
+1. **Localizar a classe**: busque `**/classes/<Classe>.cls` dentro de `force-app`
+   (ou do(s) `packageDirectories` do `sfdx-project.json`). Se houver mais de uma,
+   confirme com o usuario. Leia a classe **inteira**.
+2. **Mapear o que precisa ser coberto**: metodos, ramos (`if/else`, ternario,
+   `switch`), loops, `try/catch`, DML (insert/update/delete/upsert), SOQL/SOSL,
+   chamadas a outras classes, `@AuraEnabled`/`@InvocableMethod`/web services,
+   `with/without/inherited sharing`, e excecoes custom lancadas.
+3. **Detectar utilitarios de dados**: procure `TestDataFactory`, `TestFactory`,
+   `*TestData*`. Se existir, **use-o** para criar registros (evita quebrar em
+   validation rules / campos obrigatorios). Se nao existir e a org tiver muitas
+   regras, considere criar um helper minimo em vez de repetir setup em cada teste.
+4. **Descobrir a org alvo**: `sf config get target-org` (ou pergunte o alias).
+   Confirme que ha org autenticada: `sf org display`. Se o `sf` nao estiver
+   instalado/autenticado, pare e oriente o usuario.
+
+## O loop (repetir os passos 1→4)
+
+1. **Escrever/atualizar** `force-app/**/classes/<Classe>Test.cls` **e** o
+   `<Classe>Test.cls-meta.xml` (veja `references/templates/`). Cubra os cenarios
+   mapeados no passo 0 — cada caminho relevante vira um metodo `@IsTest` com
+   **assert significativo** (veja as Regras de Ouro abaixo).
+
+2. **Deploy + rodar teste com cobertura** usando o script auxiliar (determinístico):
+
+   ```bash
+   node .claude/skills/apex-test-loop/scripts/apex-coverage.mjs \
+     --class <Classe> --test <Classe>Test --deploy [--org <alias>] \
+     [--extra ApexClass:TestDataFactory]
+   ```
+
+   Ele faz o deploy da classe + teste (+ extras), roda o teste de forma sincrona
+   e imprime um JSON compacto: `coveredPercent`, `uncoveredLines`, `failures`.
+   Se o script nao rodar no ambiente do usuario, use os comandos `sf` crus de
+   `references/sf-cli-and-coverage.md` (mesmo efeito).
+
+3. **Ler o resultado**:
+   - `phase: "deploy"` com `deploySucceeded: false` → **erro de compilação**.
+     Corrija o teste conforme `deployErrors[].problem`/`line` e volte ao passo 2.
+   - `failures` nao vazio → algum assert/dado falhou. Leia `message`/`stackTrace`,
+     corrija e volte ao passo 2. **Nunca** remova o assert só para o teste passar.
+   - Passou → observe `coveredPercent` e `uncoveredLines`.
+
+4. **Decidir**:
+   - Se `coveredPercent >= 99` (meta) **e** todo metodo tem assert real → **concluir**
+     (vá para o Encerramento).
+   - Senão → abra a classe de producao **exatamente nas `uncoveredLines`**, entenda
+     QUAL cenario falta (um ramo `else`? um `catch`? um item de `switch`? um loop que
+     nunca roda vazio/cheio?), adicione **um metodo de teste especifico** para aquele
+     caminho (com assert) e volte ao passo 2. Para `catch`/DML difícil, veja
+     `references/testing-dml-and-exceptions.md`.
+
+## ⛔ Regras de Ouro (inegociaveis — anti-cheat)
+
+Estas regras existem porque cobertura sem verificacao e apenas "execucao de codigo",
+nao teste. Voce **NAO PODE**:
+
+1. **Alterar a classe de producao para inflar cobertura.** Proibido mexer em
+   formatacao, quebras de linha, indentacao, chaves ou comentarios do `.cls` de
+   producao com o objetivo de reduzir linhas contadas. A unica edicao permitida em
+   producao e um hook de testabilidade legítimo — e só nas condições da regra de
+   DML (veja o arquivo de DML), sempre **sinalizado para revisao humana**, nunca
+   silencioso.
+2. **Entregar teste sem assert.** Todo metodo `@IsTest` deve validar comportamento
+   com a classe `Assert` (`Assert.areEqual`, `Assert.isTrue`, `Assert.isNotNull`,
+   `Assert.fail`...). Asserts triviais tipo `Assert.areEqual(1, 1)` sao invalidos.
+   Valide: mudancas no banco (re-consulte via SOQL), retornos de metodo, e a
+   **mensagem exata** dentro de blocos `catch`.
+3. **Usar atalhos proibidos.** Sem `@IsTest(SeeAllData=true)` (salvo dependencia
+   inevitavel de metadados), sem IDs hardcoded, sem depender de dados da org.
+4. **Fingir cobertura impossivel.** Se restarem linhas comprovadamente inalcançaveis,
+   **documente-as** no relatorio final em vez de forçar um caminho artificial.
+
+Boas praticas obrigatorias: `@TestSetup` para dados compartilhados;
+`Test.startTest()`/`Test.stopTest()` ao redor do codigo sob teste; `System.runAs`
+para cenarios de permissao; e **teste em massa (200 registros)** para triggers,
+handlers e `@InvocableMethod` (garante que nao ha SOQL/DML dentro de loop).
+Checklist completo em `references/quality-checklist.md`.
+
+## Condicao de parada e encerramento
+
+- **Parada de seguranca**: se apos **6 iteracoes** a cobertura nao evoluir, ou
+  houver erro crônico de deploy/compilação, PARE e gere um relatorio com: a(s)
+  linha(s) que travaram, o motivo (validation rule, trigger externa, dependencia
+  de dado, limite de plataforma) e uma recomendacao para o desenvolvedor humano.
+- **Encerramento com sucesso**: apresente um resumo curto — cobertura final,
+  metodos de teste criados e o cenario que cada um valida (happy path, negativos,
+  excecoes, bulk). Se algum hook de testabilidade foi adicionado a producao,
+  **destaque isso em separado** para revisao.
+
+## Referencias (leia conforme a necessidade)
+
+- `references/sf-cli-and-coverage.md` — comandos `sf` crus, flags corretas, formato
+  do JSON de cobertura, deploy em scratch org vs sandbox, e detecção de org.
+- `references/testing-dml-and-exceptions.md` — como cobrir `catch`/`DmlException`
+  na ordem certa (dado real → Stub API/DI → hook `@TestVisible` como ultimo recurso).
+- `references/quality-checklist.md` — matriz de cenarios, exigencias de assert,
+  nomenclatura e anti-patterns a evitar.
+- `references/templates/` — esqueleto de classe de teste e do `.cls-meta.xml`.
