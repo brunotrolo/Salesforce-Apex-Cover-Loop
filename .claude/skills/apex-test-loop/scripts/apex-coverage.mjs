@@ -41,8 +41,28 @@ if (!className || !testName) {
 
 const orgArgs = org ? ['--target-org', org] : [];
 
+// No Windows o sf e um .cmd, e o Node moderno exige shell para executa-lo.
+// (Os args aqui sao nomes de classe/alias simples — sem risco de quoting.)
+const IS_WINDOWS = process.platform === 'win32';
+
 function runSf(args) {
-  return spawnSync('sf', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  const res = spawnSync('sf', args, {
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+    shell: IS_WINDOWS,
+  });
+  if (res.error && res.error.code === 'ENOENT') {
+    emit(
+      {
+        phase: 'preflight',
+        error:
+          'Salesforce CLI (sf) nao encontrado no PATH. Instale: ' +
+          'https://developer.salesforce.com/tools/salesforcecli e autentique com "sf org login web".',
+      },
+      1
+    );
+  }
+  return res;
 }
 
 function parseJsonLoose(stdout) {
@@ -162,10 +182,15 @@ const failures = tests
   }));
 
 // Localiza a cobertura da classe sob teste
-const covList = r.coverage?.coverage || r.coverage || [];
-const entry = (Array.isArray(covList) ? covList : []).find(
-  (c) => (c.name || c.Name) === className
-);
+const covListRaw = r.coverage?.coverage || r.coverage || [];
+const covList = Array.isArray(covListRaw) ? covListRaw : [];
+const entry = covList.find((c) => (c.name || c.Name) === className);
+
+// Cobertura colateral: outras classes/triggers executadas por este teste.
+// Util para o agente saber que uma trigger/helper tambem foi exercitada.
+const otherClassesTouched = covList
+  .filter((c) => (c.name || c.Name) !== className)
+  .map((c) => ({ name: c.name || c.Name, coveredPercent: c.coveredPercent }));
 
 let coveredPercent = null;
 let totalLines = null;
@@ -200,6 +225,10 @@ emit(
     totalLines,
     coveredLines,
     uncoveredLines,
+    // Se a classe nao apareceu na cobertura, liste o que apareceu (ajuda a
+    // diagnosticar nome errado, trigger, ou teste que nao exercita a classe).
+    availableCoverage: entry ? undefined : covList.map((c) => c.name || c.Name),
+    otherClassesTouched: otherClassesTouched.length ? otherClassesTouched : undefined,
   },
   failures.length || !entry ? 1 : 0
 );

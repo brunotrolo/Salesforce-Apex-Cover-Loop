@@ -47,6 +47,10 @@ Se o nome nao foi dado, pergunte qual classe cobrir antes de começar.
    `switch`), loops, `try/catch`, DML (insert/update/delete/upsert), SOQL/SOSL,
    chamadas a outras classes, `@AuraEnabled`/`@InvocableMethod`/web services,
    `with/without/inherited sharing`, e excecoes custom lancadas.
+   **Detecte tratamento especial ANTES de escrever**: se a classe tem callout
+   (`Http`, WSDL) ou assincrono (`@future`, Queueable, Batchable, Schedulable,
+   Platform Events), leia `references/callouts-and-async.md` primeiro — sem
+   `Test.setMock`/padroes de async o teste falha e o loop desperdica iteracoes.
 3. **Detectar utilitarios de dados**: procure `TestDataFactory`, `TestFactory`,
    `*TestData*`. Se existir, **use-o** para criar registros (evita quebrar em
    validation rules / campos obrigatorios). Se nao existir e a org tiver muitas
@@ -54,6 +58,15 @@ Se o nome nao foi dado, pergunte qual classe cobrir antes de começar.
 4. **Descobrir a org alvo**: `sf config get target-org` (ou pergunte o alias).
    Confirme que ha org autenticada: `sf org display`. Se o `sf` nao estiver
    instalado/autenticado, pare e oriente o usuario.
+5. **Baseline (se o teste ja existe)**: quando `<Classe>Test.cls` ja existir,
+   leia-a e rode o script UMA vez **sem alterar nada** para medir a cobertura
+   atual. Dai **melhore a classe existente** — preserve os testes bons, complete
+   os cenarios que faltam. Nao reescreva do zero sem motivo.
+
+> Nota sobre **Triggers**: para cobrir uma trigger, o gatilho e fazer DML no
+> objeto dentro do teste (insert/update/delete de registros). O fluxo do loop e
+> o mesmo — a cobertura da trigger aparece no JSON junto com a das classes
+> (campo `otherClassesTouched` do script).
 
 ## O loop (repetir os passos 1→4)
 
@@ -89,7 +102,8 @@ Se o nome nao foi dado, pergunte qual classe cobrir antes de começar.
      QUAL cenario falta (um ramo `else`? um `catch`? um item de `switch`? um loop que
      nunca roda vazio/cheio?), adicione **um metodo de teste especifico** para aquele
      caminho (com assert) e volte ao passo 2. Para `catch`/DML difícil, veja
-     `references/testing-dml-and-exceptions.md`.
+     `references/testing-dml-and-exceptions.md`; para callout/assincrono que nao
+     cobre, veja `references/callouts-and-async.md`.
 
 ## ⛔ Regras de Ouro (inegociaveis — anti-cheat)
 
@@ -152,6 +166,9 @@ Quando ativado, siga o roteiro de `references/guided-mode.md`. Em resumo:
   do JSON de cobertura, deploy em scratch org vs sandbox, e detecção de org.
 - `references/testing-dml-and-exceptions.md` — como cobrir `catch`/`DmlException`
   na ordem certa (dado real → Stub API/DI → hook `@TestVisible` como ultimo recurso).
+- `references/callouts-and-async.md` — `Test.setMock` para callouts HTTP/SOAP,
+  padroes de `@future`/Queueable/Batch/Schedulable/Platform Events, e a pegadinha
+  da `AuraHandledException`.
 - `references/quality-checklist.md` — matriz de cenarios, exigencias de assert,
   nomenclatura e anti-patterns a evitar.
 - `references/templates/` — esqueleto de classe de teste e do `.cls-meta.xml`.

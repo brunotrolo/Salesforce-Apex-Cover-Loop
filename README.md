@@ -27,6 +27,10 @@ ou quando bate uma condicao de parada segura (e ai gera um relatorio para o huma
   invalido / `System.runAs`; depois Stub API / injecao de dependencia; e so como
   ultimo recurso um hook `@TestVisible` na classe de producao — sempre sinalizado
   para revisao humana, nunca commitado silenciosamente.
+- **Callouts e assincrono sem sustos.** Classes com HTTP/SOAP ou
+  `@future`/Queueable/Batch/Schedulable sao detectadas ANTES de escrever o teste,
+  aplicando `Test.setMock` e os padroes de `startTest/stopTest` corretos — em vez
+  de queimar iteracoes com falhas de plataforma.
 
 ## Pre-requisitos (na maquina onde o loop roda)
 
@@ -172,6 +176,7 @@ Na pratica:
     guided-mode.md                  # roteiro do modo guiado (passo a passo para leigos)
     sf-cli-and-coverage.md          # comandos sf, flags e formato do JSON de cobertura
     testing-dml-and-exceptions.md   # como cobrir catch/DML na ordem certa
+    callouts-and-async.md           # Test.setMock (HTTP/SOAP) e @future/Queueable/Batch/Schedulable
     quality-checklist.md            # matriz de cenarios, exigencia de asserts, anti-patterns
     templates/
       ExampleTest.cls               # esqueleto de classe de teste

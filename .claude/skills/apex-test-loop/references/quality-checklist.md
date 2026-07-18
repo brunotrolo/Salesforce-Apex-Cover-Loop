@@ -19,8 +19,14 @@ testes fracos e uma falsa sensacao de seguranca.
   governor limits.
 - **Permissoes** — `System.runAs` para perfis/usuarios diferentes quando o codigo
   depende de sharing/CRUD/FLS.
+- **Callouts** — TODO caminho com `Http`/WSDL exige `Test.setMock`
+  (`HttpCalloutMock`/`WebServiceMock`), com cenario de **sucesso** E de **erro**
+  (4xx/5xx e `CalloutException`). Veja `callouts-and-async.md`.
 - **Assincrono** — `Test.startTest()/stopTest()` envolvendo `@future`, Queueable,
-  Batch ou Schedulable para forcar a execucao dentro do teste.
+  Batch ou Schedulable para forcar a execucao dentro do teste; asserts sempre
+  DEPOIS do `stopTest()`. Batch: menos de 200 registros de teste (um unico
+  `execute()` por teste). Queueable com chaining: o elo deve estar protegido por
+  `!Test.isRunningTest()` na producao.
 
 ## Asserts — obrigatorios e significativos
 
