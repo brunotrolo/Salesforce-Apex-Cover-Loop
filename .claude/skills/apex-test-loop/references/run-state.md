@@ -52,7 +52,7 @@ compactacao de contexto, **sem recomecar do zero**.
 # Estado do loop — <Classe>
 
 - status: em_andamento            <!-- em_andamento | concluido | pausado_bloqueado -->
-- meta_cobertura: 99
+- meta_cobertura: 99               <!-- se re-pactuada com o usuario, atualize aqui e registre abaixo -->
 - org: <alias>
 - modo: automatico                <!-- automatico | guiado | scaffold -->
 - iteracao: 0/6
@@ -69,7 +69,10 @@ compactacao de contexto, **sem recomecar do zero**.
 - <uma frase concreta e acionavel>
 
 ## Bloqueios / decisoes do humano
-- (vazio)
+- (vazio)                          <!-- se a meta foi re-pactuada (runtime-blockers.md,
+                                         "Quando o teto so fica claro DEPOIS"), registre
+                                         aqui a pergunta feita e a resposta do usuario —
+                                         assim, ao retomar, o agente NAO pergunta de novo -->
 ```
 
 ## Exemplo preenchido (meio do run)

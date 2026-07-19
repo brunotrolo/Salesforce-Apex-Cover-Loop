@@ -236,4 +236,23 @@ existe tanto no repositorio-casa quanto na copia dentro do seu projeto Salesforc
   remover cenario, engolir excecao, mega-teste), retrospectiva ganha excecao de
   registro IMEDIATO para friccao grave.
 
-<!-- A skill anexa novas propostas ABAIXO desta linha, como R-0019, R-0020... -->
+### R-0019 — Framework de decisao quando o teto so aparece DEPOIS do Passo 0
+- **Status:** ✅ Aplicada (PR #17)
+- **Data:** 2026-07-19
+- **Gatilho:** Rodando o CaseHandler ja com R-0018, a regra do platô funcionou (35%
+  parado virou 38% com diagnostico ativo) e o run chegou honestamente a um
+  "bloqueio identificado (a confirmar)" na iteracao 6 — mas isso so ficou claro
+  DEPOIS de cavar fundo, nao no Passo 0. A "Meta honesta" so cobria avaliacao
+  antecipada.
+- **Problema:** Faltava um roteiro para quando o teto de cobertura so se revela no
+  meio do run (apos diagnosticar `uncoveredLines` via regra do platô) — o agente
+  nao tinha um formato concreto de pergunta/opcoes pra apresentar ao usuario, nem
+  um lugar pra registrar a resposta e nao perguntar de novo ao retomar.
+- **Melhoria:** `runtime-blockers.md` ganha "Quando o teto so fica claro DEPOIS de ja
+  rodar iteracoes" — pedido de confirmacao com 3 opcoes nomeadas (org com config
+  completa / aceitar meta re-pactuada e concluir / scaffold do que for metadata,
+  sendo honesto sobre o que nao e scaffoldable). SKILL.md conecta a regra do platô
+  a este framework quando o diagnostico aponta bloqueio de ambiente. `run-state.md`
+  ganha campo pra registrar a decisao no checkpoint, pra nao re-perguntar ao retomar.
+
+<!-- A skill anexa novas propostas ABAIXO desta linha, como R-0020, R-0021... -->

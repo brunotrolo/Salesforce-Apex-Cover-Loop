@@ -90,6 +90,30 @@ X%, porque os ramos A/B/C dependem de config que nao existe aqui — na org corr
 eles se tornam alcancaveis"*. Meta ajustada com transparencia vale mais que 99% de
 fachada.
 
+### Quando o teto so fica claro DEPOIS de ja rodar iteracoes
+
+Nem sempre da para saber no Passo 0 — muitas vezes o teto so aparece depois que a
+regra do platô te fez diagnosticar as `uncoveredLines` a fundo e ficou claro que
+aquelas linhas especificas **nao sao "precisa de mais teste"**, sao **"bloqueadas
+pelo ambiente"** (Flow, feature de org desabilitada, config ausente que nao pode ser
+criada em teste). Quando isso acontecer, **pare e apresente ao usuario um pedido de
+confirmacao concreto**, com opcoes nomeadas — nao decida sozinho e nao force:
+
+> *"A cobertura estabilizou em X%. As linhas [lista] dependem de [Groups/Queues/
+> Entitlements/Flow] que [nao existem nesta org / estao bloqueados pela automacao].
+> Suas opcoes:*
+> *(a) apontar para uma org/sandbox que tenha essa configuracao completa;*
+> *(b) aceitar X% como meta final para este ambiente e concluir o run aqui;*
+> *(c) [so se for dev/treino] usar `--scaffold` para o que for metadata criavel
+> (objetos/campos custom, `__mdt`) — mas sendo claro que features de org habilitadas
+> (ex.: Entitlement Management) e automacoes (Flow) NAO sao scaffoldable, essas
+> exigem a opcao (a).*
+> *Qual voce prefere?"*
+
+Registre a resposta no checkpoint (`state/<Classe>.md`) e no ledger se for uma
+decisao relevante — assim, se o run for retomado depois, o proximo agente sabe que
+a pergunta ja foi feita e qual foi a resposta (nao pergunte de novo).
+
 ## Registro imediato no ledger
 
 Bloqueio de runtime que resulte em **qualquer** compromisso de qualidade (cenario

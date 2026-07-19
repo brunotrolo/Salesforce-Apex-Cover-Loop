@@ -180,6 +180,11 @@ Se o nome nao foi dado, pergunte qual classe cobrir.
      anterior; dai em diante **cada teste novo nomeia as linhas-alvo** que pretende
      cobrir, e a iteracao seguinte confere se elas sairam da lista. Detalhe em
      `references/runtime-blockers.md` (secao "Regra do platô").
+   - **Se o diagnostico revelar que as linhas-alvo sao bloqueadas pelo ambiente**
+     (nao "precisa de mais teste", e "Flow/feature/config impede"), isso NAO surgiu
+     no Passo 0 mas surge agora — pare e apresente ao usuario o pedido de confirmacao
+     com opcoes nomeadas de `references/runtime-blockers.md` ("Quando o teto so fica
+     claro DEPOIS de ja rodar iteracoes"). Nao decida sozinho, nao force.
    - **Em AMBOS os casos, atualize `state/<Classe>.md`** (iteracao, cobertura,
      historico, linhas restantes, feito, proximo passo) — e parte do passo, nao um
      extra. E isso que permite retomar o loop de onde parou.
