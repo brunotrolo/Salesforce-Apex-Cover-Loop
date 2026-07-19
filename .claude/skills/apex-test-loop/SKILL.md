@@ -106,6 +106,11 @@ Se o nome nao foi dado, pergunte qual classe cobrir.
    sharing, excecoes custom. **Detecte callout/assincrono** (`Http`, WSDL, `@future`,
    Queueable, Batchable, Schedulable, Platform Events) — para o COMO, aplique
    **platform-apex-test-generate** (mocks/async).
+   **Avalie a alcancabilidade e re-pactue a meta se preciso**: se a classe depende
+   fortemente de configuracao de org (muitos record types, Entitlements, Queues,
+   Custom Settings), diga ao usuario DESDE JA quais ramos podem ser inalcancaveis
+   neste ambiente e qual e a meta pratica — 99% e o padrao, nao uma promessa cega
+   (veja `references/runtime-blockers.md`, "Meta honesta").
 3. **Dados de teste**: procure `TestDataFactory`/`TestFactory`. Para criar/seedar
    dados e o padrao de factory, delegue a **platform-data-manage**.
 4. **Org alvo**: `sf config get target-org` / `sf org display`. Se `sf` nao estiver
@@ -152,15 +157,29 @@ Se o nome nao foi dado, pergunte qual classe cobrir.
        `references/scaffolding-dependencies.md`.
      Sem sinal de scaffold, **pare e ofereca as opcoes**.
    - Falha na **classe de teste** → corrija o TESTE conforme `deployErrors` e volte a 2.
-   - `failures` nao vazio → corrija **o teste** (nunca remova assert) e volte a 2.
+   - `failures` nao vazio → **investigue a CAUSA antes de "corrigir"**:
+     - Causa e o **teste** (assert errado, dado mal montado) → corrija o teste
+       (nunca remova assert) e volte a 2.
+     - Causa e a **ORG em runtime** (Flow bloqueando DML, Entitlement/Queue/config
+       ausente, governor limit — CPU/SOQL) → isso e um **bloqueio de runtime**, nao
+       um defeito do teste. Siga `references/runtime-blockers.md` (satisfazer a
+       automacao, criar o dado real, dividir o teste, ou PARAR e perguntar) — os
+       atalhos de enfraquecer o teste sao proibidos (Regra de Ouro 5).
    - Passou → veja `coveredPercent` e `uncoveredLines`.
 
 4. **Decidir e SALVAR o checkpoint**:
-   - `coveredPercent >= 99` **e** todo metodo com assert real → **concluir**.
+   - `coveredPercent >= 99` (ou a meta re-pactuada) **e** todo metodo com assert
+     real → **concluir**.
    - Senão → leia a classe de producao **nas `uncoveredLines`**, entenda o cenario
      que falta (ramo `else`? `catch`? item de `switch`? loop vazio/cheio?), adicione
      **um metodo de teste** para aquele caminho (aplicando o craft de
      platform-apex-test-generate) e volte a 2.
+   - **Regra do platô**: cobertura parada por **2 iteracoes seguidas** enquanto o
+     numero de testes cresce = os testes novos estao cobrindo linhas ja cobertas.
+     PARE de escrever testes e diagnostique: compare `uncoveredLines` com a iteracao
+     anterior; dai em diante **cada teste novo nomeia as linhas-alvo** que pretende
+     cobrir, e a iteracao seguinte confere se elas sairam da lista. Detalhe em
+     `references/runtime-blockers.md` (secao "Regra do platô").
    - **Em AMBOS os casos, atualize `state/<Classe>.md`** (iteracao, cobertura,
      historico, linhas restantes, feito, proximo passo) — e parte do passo, nao um
      extra. E isso que permite retomar o loop de onde parou.
@@ -177,6 +196,16 @@ Cobertura sem verificacao e execucao de codigo, nao teste. Voce **NAO PODE**:
 3. **Atalhos proibidos**: sem `@IsTest(SeeAllData=true)`, sem IDs hardcoded, sem
    depender de dados da org.
 4. **Fingir cobertura impossivel** — documente linhas inalcancaveis em vez de forcar.
+5. **"Resolver" uma falha enfraquecendo o teste** (aprendido em campo — CaseHandler):
+   - **nunca remova/reduza um cenario obrigatorio** (ex.: apagar o teste bulk porque
+     o CPU estourou);
+   - **nunca engula excecao com try/catch** nem guarde asserts com `if (!isEmpty())`
+     so para o teste passar;
+   - **nunca crie "mega-teste"** com dezenas de combinacoes num metodo so (1
+     comportamento por metodo — helper privado para setup e ok, assert individual).
+   Falha causada pela ORG (Flow, config ausente, governor limit) tem tratamento
+   proprio: `references/runtime-blockers.md`. Se voce se pegar tomando um desses
+   atalhos, PARE, desfaça e registre no ledger imediatamente.
 
 Boas praticas: `@TestSetup`; `Test.startTest()/stopTest()`; `System.runAs` para
 permissao; **bulk 251+ registros** (cruza a fronteira de batch de 200 da trigger) para
@@ -191,7 +220,13 @@ desses padroes vive nas skills oficiais (**platform-apex-test-generate** /
   `status: pausado_bloqueado` + o motivo exato + o que o humano precisa decidir —
   assim, resolvido o bloqueio, o loop retoma dali.
 - **Encerramento**: resumo curto — cobertura final, metodos criados e o cenario que
-  cada um valida. No estado: `status: concluido` + resumo final.
+  cada um valida. No estado: `status: concluido` + resumo final. Inclua DUAS secoes
+  obrigatorias quando existirem:
+  - **Achados de producao**: problemas do codigo de producao que os testes revelaram
+    (ex.: SOQL em loop que estoura CPU em bulk, falta de checagem `isEmpty()`).
+    Reportar apenas — a correcao e da `platform-apex-generate` com aprovacao humana.
+  - **Limitacoes de cobertura**: linhas/ramos inalcancaveis NESTE ambiente e por que
+    (feature desabilitada, Flow ativo, config ausente), para o usuario decidir.
 
 ## Fase de retrospectiva (autoaprendizado da skill)
 
@@ -199,6 +234,14 @@ No **fim de cada run** (sucesso OU parada), reflita: *o que nesta skill me atrap
 **So registre proposta quando houve FRICCAO REAL** (guard bloqueou algo legitimo,
 dependencia travou, muitas iteracoes, decisao humana por ambiguidade, delegacao
 faltando/confusa, comando `sf` errado). **Em run limpo, nao registre nada.**
+
+**EXCECAO — friccao GRAVE registra NA HORA, nao no fim** (aprendido em campo: num
+run longo "ate 99%", o fim pode demorar dezenas de iteracoes e o detalhe se perde
+na compactacao de contexto). E grave qualquer compromisso de qualidade: cenario
+obrigatorio nao coberto, teste em memoria por bloqueio de Flow, excecao de org
+contornada, meta re-pactuada para baixo. Nesses casos: registre no ledger e anote
+no checkpoint (`state/<Classe>.md`, Bloqueios) **no momento em que acontecer**, e
+avise o usuario na mesma resposta.
 
 Para cada friccao (max ~3): confira `RECOMMENDATIONS.md` (nao duplicar) e **anexe**
 uma entrada `R-XXXX` com status `🟡 Proposta` (gatilho real, problema, mudanca
@@ -216,6 +259,9 @@ conceitos; mostre o progresso (`72% -> 88% -> 99%`); as Regras de Ouro continuam
 ## Referencias
 
 **Nossas (unicas desta camada):**
+- `references/runtime-blockers.md` — bloqueios de RUNTIME (Flow bloqueando DML,
+  config de org ausente, governor limits): o que nunca fazer, o que fazer por tipo,
+  regra do platô e meta honesta.
 - `references/run-state.md` — memoria de estado do run (checkpoint por classe:
   onde le/escreve, regras e template para retomar o loop de onde parou).
 - `references/guided-mode.md` — roteiro do modo guiado (PT, para leigos).

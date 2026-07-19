@@ -306,6 +306,7 @@ Na pratica:
       guard.mjs                     # hook PreToolUse: deny destrutivo / ask sobrescrita de producao
     references/
       run-state.md                  # memoria de estado: checkpoint por classe (retomar o loop)
+      runtime-blockers.md           # falha por causa da ORG (Flow/config/limites): o que (nao) fazer
       guided-mode.md                # roteiro do modo guiado (para leigos, PT)
       scaffolding-dependencies.md   # orquestracao do scaffold dev (__c/__mdt/classes)
       sf-cli-and-coverage.md        # contrato do apex-coverage.mjs + comandos sf de fallback
@@ -371,3 +372,15 @@ nasceram desse ciclo.
   dependencias faltantes como **arquivos novos** (`__c`/`__mdt` viram metadata XML,
   nao Apex) — **sem nunca tocar na classe sob teste**. Detalhes em
   `references/scaffolding-dependencies.md`. Ideal: uma **scratch org** descartavel.
+- **Teste falhando por causa da ORG (Flow, config ausente, limite de CPU):** o loop
+  NAO "da um jeitinho" (remover o teste, engolir a excecao com try/catch) — isso e
+  proibido pelas Regras de Ouro. Ele diagnostica a causa, tenta o caminho legitimo
+  (criar o dado real, dividir o teste) e, se for limitacao genuina do ambiente,
+  **para e te explica as opcoes** — inclusive re-pactuando a meta com transparencia
+  ("neste ambiente o alcancavel e X%, porque..."). Problemas do codigo de producao
+  descobertos pelos testes (ex.: SOQL em loop) viram a secao **"Achados de
+  producao"** no relatorio final — reportados, nunca corrigidos por conta propria.
+  Detalhes em `references/runtime-blockers.md`.
+- **Cobertura empacada?** Se a % ficar parada por 2 iteracoes enquanto os testes
+  aumentam, o loop para de escrever testes e diagnostica quais linhas continuam
+  descobertas (regra do platô) — testes novos passam a mirar linhas especificas.

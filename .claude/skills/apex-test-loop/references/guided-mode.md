@@ -91,6 +91,13 @@ Para cada linha nao coberta, explique o cenario que falta e o que vai adicionar:
 
 Se cair num `catch`/DML dificil, explique a estrategia em ordem (dado invalido real
 → mock → hook) aplicando o craft da skill **platform-apex-test-generate** (mocking).
+
+Se o teste falhar **por causa da org** (um Flow bloqueando, configuracao que nao
+existe, limite de CPU), seja honesto com o usuario em vez de dar um jeitinho:
+*"esse erro nao e do teste — e do ambiente. As opcoes sao A, B ou C"* (siga
+`runtime-blockers.md`). Nunca esconda o problema fazendo o teste "passar" vazio —
+e se a meta de cobertura for inalcancavel neste ambiente, explique o porque e
+re-pactue o numero com ele.
 **Se for preciso tocar na classe de producao**, isso e trabalho da
 **platform-apex-generate** com aprovacao — PAUSE, explique o que muda e o risco, e so
 faca com o "ok" do usuario, marcado para revisao.

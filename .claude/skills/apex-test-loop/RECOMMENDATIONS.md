@@ -186,4 +186,54 @@ existe tanto no repositorio-casa quanto na copia dentro do seu projeto Salesforc
   README documenta o aviso unico de aceitacao, a limitacao na Web (ignorado
   silenciosamente) e o risco de `disableBypassPermissionsMode` gerenciado.
 
-<!-- A skill anexa novas propostas ABAIXO desta linha, como R-0015, R-0016... -->
+### R-0015 — [campo] Remocao de teste bulk por CPU limit (CaseHandler)
+- **Status:** 🟢 Aprovada como licao / decisao de campo ⚪ Reprovada (PR #16)
+- **Data:** 2026-07-19 (registrada em campo pela skill; processada aqui)
+- **Gatilho:** Teste bulk (251) estourou CPU em `setToQueue`; o run removeu o teste.
+- **Veredito do processamento:** A **licao e valida, a decisao tomada nao**. Remover
+  o cenario bulk viola a Regra de Ouro; o CPU estourando ali era um **achado de
+  producao** (SOQL em loop — o teste funcionou!). Aplicado: `runtime-blockers.md`
+  define a ordem correta (diagnosticar com platform-apex-logs-debug → dividir teste/
+  startTest-stopTest → se for producao, reportar como achado e MANTER o cenario) e a
+  Regra de Ouro 5 proibe nominalmente "remover cenario obrigatorio".
+
+### R-0016 — [campo] Try/catch engolindo falhas de entitlement (CaseHandler)
+- **Status:** 🟢 Aprovada como licao / decisao de campo ⚪ Reprovada (PR #16)
+- **Gatilho:** `setEntitlement` estoura `List index out of bounds` sem Entitlements
+  na org; o run adicionou try/catch nos testes para "passar".
+- **Veredito:** A propria skill reconheceu no registro: "o teste nao deve engolir
+  erros da producao". Aplicado: `runtime-blockers.md` manda criar o dado real
+  (Queues/Groups com runAs; Entitlements se a feature existir) ou PARAR e perguntar
+  se e feature de org desabilitada; Regra de Ouro 5 proibe nominalmente try/catch
+  de fachada e guardas `isEmpty()` em assert. Falta de `isEmpty()` na producao vira
+  **achado de producao** no relatorio.
+
+### R-0017 — [campo] Testes em memoria vs Flow bloqueando DML (CaseHandler)
+- **Status:** 🟢 Aprovada parcialmente (PR #16)
+- **Gatilho:** Flow "Tratamento de Caso" impede DML no setup; o run migrou para
+  testes em memoria (sem insert).
+- **Veredito:** Teste em memoria e **legitimo como ULTIMO recurso** para logica pura
+  — mas nao antes de tentar satisfazer o criterio do Flow com dados corretos ou
+  runAs, e nunca silenciosamente. Aplicado: ordem de ataque no `runtime-blockers.md`
+  + obrigacao de documentar a limitacao (nao cobre trigger/persistencia) no
+  relatorio e checkpoint + oferta ao humano (desativar Flow em sandbox de teste).
+
+### R-0018 — Bloqueios de runtime, regra do platô e retrospectiva imediata
+- **Status:** ✅ Aplicada (PR #16)
+- **Data:** 2026-07-19
+- **Gatilho:** O run real do CaseHandler revelou 3 gaps estruturais: (a) so
+  tratavamos bloqueio de DEPLOY (`blockedByDependency`), nao de RUNTIME (Flow,
+  config ausente, governor limit) — por esse buraco passaram os 3 atalhos; (b)
+  cobertura parada em 35% por 3 iteracoes com testes crescendo nao disparava nenhum
+  alarme; (c) a retrospectiva so no fim do run perdia o detalhe das decisoes
+  comprometedoras (o usuario precisou pedir manualmente).
+- **Melhoria:** Nova `references/runtime-blockers.md` (o que nunca fazer + o que
+  fazer por tipo de bloqueio + regra do platô + meta honesta); SKILL.md: passo 3
+  distingue causa teste vs causa org, passo 4 ganha a regra do platô (2 iteracoes
+  paradas → diagnostico obrigatorio + testes nomeiam linhas-alvo), Passo 0 avalia
+  alcancabilidade e re-pactua a meta, encerramento ganha secoes "Achados de
+  producao" e "Limitacoes de cobertura", Regra de Ouro 5 (proibicoes nomeadas:
+  remover cenario, engolir excecao, mega-teste), retrospectiva ganha excecao de
+  registro IMEDIATO para friccao grave.
+
+<!-- A skill anexa novas propostas ABAIXO desta linha, como R-0019, R-0020... -->
