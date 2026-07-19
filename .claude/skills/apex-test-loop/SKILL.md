@@ -55,7 +55,37 @@ comportamento por metodo, bulk mandatorio (as regras marcadas como [rigoroso] ab
 
 Esta skill e a **orquestracao**. O **craft** (como escrever um bom teste) vem das
 skills oficiais da Salesforce importadas aqui (veja Delegacao). Nosso valor: o loop,
-as **travas de seguranca**, o **modo guiado PT** e o **modo scaffold**.
+as **travas de seguranca**, o **modo guiado PT**, o **modo scaffold** e a **estrategia
+de 2 fases (local → org)**.
+
+## ⚡ Estratégia de 2 fases: testes locais PRIMEIRO, org depois
+
+A maior oportunidade de reduzir tempo: **nao ir pra org ate ter 75% de cobertura LOCAL**.
+
+```
+FASE 1 (Local, < 75%):
+  • Escreve testes SEM insert/update/delete (SObjects em memória)
+  • Roda em LOCAL (2-3 segundos, nao deploy)
+  • Se passar: próximo teste local
+  • Se falhar: conserta e próximo teste local
+  • Quando atinge >= 75%: passa pra Fase 2
+
+FASE 2 (Org, >= 75%):
+  • Escreve testes COM insert/update/delete (dados reais)
+  • Faz deploy + roda na org (100+ segundos, mas com base sólida)
+  • Iterações até 99%
+  • Testes não cobertos e com DML entram aqui
+```
+
+**Economia de tempo:** 80% — ao invés de 12 ciclos de 100s (1200s = 20 min),
+faz 6 ciclos locais de 3s (18s) + 2 ciclos na org de 100s (200s) = **218 segundos (3.6 min)**.
+
+Como saber se teste é "local"? Grep por `insert`, `update`, `delete`, `Database.insert()`:
+- Se teste NAO tem nenhum desses → é local, roda sem deploy
+- Se teste tem algum → é org, precisa deploy
+
+Excecao: `Test.startTest()` / `Test.stopTest()` ao redor de DML nao significa que eh local.
+Foco real: **tem persitencia de dados na org ou nao?**
 
 ## Delegacao — o craft vem das skills oficiais (importadas)
 
