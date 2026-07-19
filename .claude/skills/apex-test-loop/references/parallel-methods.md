@@ -59,8 +59,12 @@ Fase 4 — CHECKPOINT (sequencial, um so passo):
   `platform-apex-test-generate`."
 - "NAO escreva no arquivo compartilhado. NAO rode deploy. Devolva o codigo dos
   metodos de teste como texto."
-- As proibicoes nomeadas: nunca remover cenario obrigatorio, nunca engolir excecao
-  com try/catch, nunca guardar assert com `isEmpty()`, nunca mega-teste — cada
-  cenario com seu proprio metodo/assert com mensagem especifica.
+- As **Travas** (valem sempre): nunca tocar producao, sem SeeAllData, sem IDs
+  hardcoded, todos os testes devem passar, nunca degradar teste que ja passa.
+- **O modo do run**: se `--rigoroso`, inclua tambem as Regras de qualidade (sem
+  try/catch de fachada, sem guarda `isEmpty()` em assert, assert de valor exato com
+  mensagem, 1 comportamento por metodo). Se MVP (padrao), diga explicitamente que
+  guardas de portabilidade sao permitidas e asserts sao opcionais — o objetivo e
+  executar as linhas-alvo e PASSAR.
 - Se o metodo tiver bloqueio de runtime (Flow, config ausente): reportar de volta
   ao orquestrador, nao decidir sozinho (`references/runtime-blockers.md`).

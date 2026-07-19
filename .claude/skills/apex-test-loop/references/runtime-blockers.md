@@ -41,8 +41,10 @@ Ordem de ataque:
 3. **Se a causa e a producao** (ex.: SOQL dentro de loop): isso e um **ACHADO DE
    PRODUCAO** — o teste bulk esta fazendo o trabalho dele. Registre no relatorio
    final (secao "Achados de producao") e no ledger; a correcao e da
-   **platform-apex-generate** com aprovacao humana, fora deste loop. O teste bulk
-   **permanece** (falhando ou como bloqueio documentado) — remove-lo esconderia o bug.
+   **platform-apex-generate** com aprovacao humana, fora deste loop. O CENARIO bulk
+   permanece — mas **reestruturado/reduzido ate PASSAR** (teste falhando e
+   deploy-blocker em qualquer modo, Trava 5), com o tamanho reduzido e o motivo
+   documentados no relatorio. Remover o cenario por completo esconderia o bug.
 
 ### 2) Flow/automacao bloqueando o DML do setup
 

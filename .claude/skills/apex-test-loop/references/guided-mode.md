@@ -13,7 +13,8 @@ Use este roteiro quando o usuario pedir o modo guiado (`--guiado`, `--passo-a-pa
   resultado em linguagem humana (nunca cole JSON cru para o usuario).
 - **Pausas obrigatorias** (espere um "ok" antes de continuar):
   1. antes do **primeiro deploy** (voce vai enviar codigo para a org dele);
-  2. antes de **qualquer edicao na classe de producao** (explique o risco).
+  2. se alguma acao for **tocar a classe de producao** — isso NAO e trabalho desta
+     skill (e da platform-apex-generate): PAUSE, explique o risco e so siga com "ok".
 - **Qualidade nao muda.** As Travas do `SKILL.md` continuam valendo (e as Regras de
   qualidade, se `--rigoroso`): nada de inflar cobertura nem tocar producao. O modo
   guiado muda so o tom da conversa.
@@ -67,12 +68,12 @@ o que criou e explique cada metodo em 1 linha. Ensine de leve:
 ### Etapa 5 — PAUSA: pedir permissao para o deploy
 Explique e **espere confirmacao**:
 
-> "Agora preciso fazer o **deploy**: enviar a sua classe + o teste para a org
-> **minhaOrg**, para poder rodar la. Isso atualiza esses arquivos na org. Posso
-> enviar? Vou rodar este comando:"
+> "Agora preciso fazer o **deploy**: enviar **o seu TESTE** para a org
+> **minhaOrg**, para poder rodar la. A sua classe original **ja esta na org e nao
+> sera tocada** — so o arquivo de teste sobe. Posso enviar? Vou rodar este comando:"
 > ```bash
 > node .claude/skills/apex-test-loop/scripts/apex-coverage.mjs \
->   --class X --test XTest --deploy --org minhaOrg
+>   --class X --test XTest --test-only --org minhaOrg
 > ```
 
 ### Etapa 6 — Rodar e traduzir o resultado
@@ -91,7 +92,7 @@ Para cada linha nao coberta, explique o cenario que falta e o que vai adicionar:
 > situacao e confere o resultado."
 
 Se cair num `catch`/DML dificil, explique a estrategia em ordem (dado invalido real
-→ mock → hook) aplicando o craft da skill **platform-apex-test-generate** (mocking).
+→ mock) aplicando o craft da skill **platform-apex-test-generate** (mocking).
 
 Se o teste falhar **por causa da org** (um Flow bloqueando, configuracao que nao
 existe, limite de CPU), seja honesto com o usuario em vez de dar um jeitinho:
@@ -116,8 +117,8 @@ Quando bater a meta, recapitule em linguagem simples:
   cobertura mexendo na classe de producao");
 - como rodar sozinho da proxima vez: `/apex-test-loop OutraClasse`.
 
-Se algum hook de testabilidade foi adicionado a producao, **destaque isso a parte**
-para o usuario revisar/aprovar com o time.
+Se alguma mudanca em producao foi PROPOSTA no caminho (via platform-apex-generate,
+com aprovacao), **destaque isso a parte** para o usuario revisar com o time.
 
 Por fim, faca a **retrospectiva** (veja a fase no `SKILL.md`): se algo na skill te
 atrapalhou neste run, registre em `RECOMMENDATIONS.md` e avise o usuario, em

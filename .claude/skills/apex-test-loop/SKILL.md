@@ -213,8 +213,11 @@ Se o nome nao foi dado, pergunte qual classe cobrir.
      Sem sinal de scaffold, **pare e ofereca as opcoes**.
    - Falha na **classe de teste** → corrija o TESTE conforme `deployErrors` e volte a 2.
    - `failures` nao vazio → **investigue a CAUSA antes de "corrigir"**:
-     - Causa e o **teste** (assert errado, dado mal montado) → corrija o teste
-       (nunca remova assert) e volte a 2.
+     - Causa e o **teste** (assert errado, dado mal montado) → corrija o teste e
+       volte a 2. **No MVP**, um assert de expectativa errada/instavel PODE ser
+       afrouxado ou removido (asserts sao opcionais — nao gaste iteracoes consertando
+       verificacao que o modo nao exige); **no `--rigoroso`**, conserte o assert,
+       nunca o remova.
      - Causa e a **ORG em runtime** (Flow bloqueando DML, Entitlement/Queue/config
        ausente, governor limit — CPU/SOQL) → isso e um **bloqueio de runtime**, nao
        um defeito do teste. Siga `references/runtime-blockers.md`: primeiro minere
@@ -358,8 +361,8 @@ avise o usuario na mesma resposta.
 Para cada friccao (max ~3): confira `RECOMMENDATIONS.md` (nao duplicar) e **anexe**
 uma entrada `R-XXXX` com status `🟡 Proposta` (gatilho real, problema, mudanca
 acionavel). Avise o usuario: *"registrei N recomendacao(oes); peca para eu revisar
-quando quiser"*. Escrever neste `.md` e permitido. **Melhoria nunca afrouxa as Regras
-de Ouro nem as travas.** Ao **processar**: decida `🟢 Aprovada`/`⚪ Reprovada`/`✅ Aplicada`
+quando quiser"*. Escrever neste `.md` e permitido. **Melhoria nunca afrouxa as
+Travas nem o modo de qualidade vigente.** Ao **processar**: decida `🟢 Aprovada`/`⚪ Reprovada`/`✅ Aplicada`
 e atualize o status com o PR.
 
 ## Modo guiado (passo a passo para leigos)

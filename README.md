@@ -380,8 +380,10 @@ nasceram desse ciclo.
   nao Apex) — **sem nunca tocar na classe sob teste**. Detalhes em
   `references/scaffolding-dependencies.md`. Ideal: uma **scratch org** descartavel.
 - **Teste falhando por causa da ORG (Flow, config ausente, limite de CPU):** o loop
-  NAO "da um jeitinho" (remover o teste, engolir a excecao com try/catch) — isso e
-  proibido pelas Regras de Ouro. Ele diagnostica a causa, tenta o caminho legitimo
+  NAO remove teste que passa nem entrega teste falhando (Travas). Ele diagnostica a
+  causa e tenta o caminho legitimo primeiro; no MVP padrao, guardas de portabilidade
+  (try/catch, `isEmpty()`) sao aceitas como fallback — no `--rigoroso`, nao. Em
+  ambos, ele tenta o caminho legitimo
   (criar o dado real, dividir o teste) e, se for limitacao genuina do ambiente,
   **para e te explica as opcoes** — inclusive re-pactuando a meta com transparencia
   ("neste ambiente o alcancavel e X%, porque..."). Problemas do codigo de producao
