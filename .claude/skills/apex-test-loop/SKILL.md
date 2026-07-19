@@ -55,37 +55,42 @@ comportamento por metodo, bulk mandatorio (as regras marcadas como [rigoroso] ab
 
 Esta skill e a **orquestracao**. O **craft** (como escrever um bom teste) vem das
 skills oficiais da Salesforce importadas aqui (veja Delegacao). Nosso valor: o loop,
-as **travas de seguranca**, o **modo guiado PT**, o **modo scaffold** e a **estrategia
-de 2 fases (local → org)**.
+as **travas de seguranca**, o **modo guiado PT** e o **modo scaffold**.
 
-## ⚡ Estratégia de 2 fases: testes locais PRIMEIRO, org depois
+## ⚡ Estratégia de custo: menos ciclos de deploy, testes sem-DML primeiro
 
-A maior oportunidade de reduzir tempo: **nao ir pra org ate ter 75% de cobertura LOCAL**.
+**Constraint do Salesforce (leia com atencao):** teste Apex **NAO roda na maquina
+local** — ele SEMPRE executa na ORG (servidor na nuvem). Para a org rodar um teste
+NOVO/ALTERADO, o codigo do teste **precisa ser deployado antes** (`sf project deploy
+start`). Nao existe "rodar o teste local para poupar deploy" — se voce nao deploya, a
+org roda a **versao antiga** do teste e a cobertura medida fica **errada**. O custo
+dominante do loop e esse round-trip deploy+run (minutos), e ele e **inevitavel** toda
+vez que o teste muda.
 
-```
-FASE 1 (Local, < 75%):
-  • Escreve testes SEM insert/update/delete (SObjects em memória)
-  • Roda em LOCAL (2-3 segundos, nao deploy)
-  • Se passar: próximo teste local
-  • Se falhar: conserta e próximo teste local
-  • Quando atinge >= 75%: passa pra Fase 2
+Como o custo esta no round-trip, as alavancas REAIS de tempo sao:
 
-FASE 2 (Org, >= 75%):
-  • Escreve testes COM insert/update/delete (dados reais)
-  • Faz deploy + roda na org (100+ segundos, mas com base sólida)
-  • Iterações até 99%
-  • Testes não cobertos e com DML entram aqui
-```
+1. **`--test-only` (padrao):** deploya SOMENTE a classe de teste (pequena, rapida),
+   nunca a de producao (que ja esta na org). Ja e o default do loop.
+2. **Lote maximo por deploy:** enfileire TODOS os testes que sabe escrever (corrigir
+   todas as falhas + cobrir todas as linhas-alvo mapeadas) e gaste **um** deploy por
+   iteracao. Meca exito em "linhas-alvo eliminadas por deploy", nao em iteracoes.
+   (Regra detalhada em "Economia de tempo" mais abaixo.)
+3. **Testes sem-DML primeiro (ate ~90% OU empacar):** priorize os cenarios que NAO
+   precisam de `insert/update/delete` — eles rodam mais rapido na org, escapam de
+   bloqueios de Flow/automacao, e cobrem a "parte barata" da classe. So depois parta
+   para os cenarios com DML (mais lentos e sujeitos a Flow/governor).
 
-**Economia de tempo:** 80% — ao invés de 12 ciclos de 100s (1200s = 20 min),
-faz 6 ciclos locais de 3s (18s) + 2 ciclos na org de 100s (200s) = **218 segundos (3.6 min)**.
+**⚠️ Teto do sem-DML:** linhas de producao que so executam APOS persistencia real
+(logica pos-`insert`, SOQL de re-leitura, triggers) **nao sao alcancaveis** por teste
+sem-DML. Por isso a meta da fase sem-DML e **"~90% OU o ponto em que a cobertura
+empaca"**, o que vier primeiro — nunca insista em 90% sem-DML se as linhas restantes
+claramente exigem DML. Ao empacar, passe para os testes com DML (aplicando a ordem de
+ataque de `references/runtime-blockers.md`: satisfazer Flow → runAs → dado real).
 
-Como saber se teste é "local"? Grep por `insert`, `update`, `delete`, `Database.insert()`:
-- Se teste NAO tem nenhum desses → é local, roda sem deploy
-- Se teste tem algum → é org, precisa deploy
-
-Excecao: `Test.startTest()` / `Test.stopTest()` ao redor de DML nao significa que eh local.
-Foco real: **tem persitencia de dados na org ou nao?**
+Isso e **ordem de trabalho** (estrategia que VOCE, agente, segue), nao uma flag do
+script. O `apex-coverage.mjs` continua so medindo cobertura de forma deterministica; a
+priorizacao sem-DML → DML e decisao sua ao escolher quais cenarios escrever em cada
+lote.
 
 ## Delegacao — o craft vem das skills oficiais (importadas)
 

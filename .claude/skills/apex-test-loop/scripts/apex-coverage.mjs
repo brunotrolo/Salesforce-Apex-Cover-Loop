@@ -13,12 +13,15 @@
 //   node apex-coverage.mjs --class MinhaClasse [--test MinhaClasseTest] \
 //        [--org alias] [--deploy] [--extra ApexClass:TestDataFactory,ApexClass:Outra]
 //
+// IMPORTANTE (constraint do Salesforce): testes Apex SEMPRE rodam na ORG, nunca
+// na maquina local. Para a org executar um teste NOVO/ALTERADO, o codigo do teste
+// PRECISA ser deployado antes (senao a org roda a versao antiga). Por isso o loop
+// deploya a classe de teste (--test-only) a cada iteracao em que o teste muda.
+//
 // Requisitos: sf CLI instalado e autenticado; Node 18+.
 // ---------------------------------------------------------------------------
 
 import { spawnSync } from 'node:child_process';
-import { readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
 
 function arg(name, def = undefined) {
   const i = process.argv.indexOf(`--${name}`);
@@ -33,12 +36,7 @@ const org = arg('org');
 const doDeploy = !!arg('deploy', false); // deploy classe de producao + teste
 const testOnly = !!arg('test-only', false); // deploy SOMENTE a classe de teste (recomendado)
 const extra = arg('extra'); // "ApexClass:Foo,ApexClass:Bar"
-const forceNoLocalCheck = !!arg('force-deploy', false); // força deploy mesmo em teste local
-
-// Estratégia de 2 fases: se teste é local, só faz deploy quando atingir 75%
-// Isso economiza ciclos de deploy na fase inicial de cobertura
-const testIsLocal = isTestLocal(testName);
-let willDeploy = doDeploy || testOnly;
+const willDeploy = doDeploy || testOnly;
 
 if (!className || !testName) {
   console.error(
@@ -93,62 +91,6 @@ function parseJsonLoose(stdout) {
 function emit(obj, exitCode) {
   console.log(JSON.stringify(obj, null, 2));
   process.exit(exitCode);
-}
-
-// Detecta se teste eh "local" (sem DML) lendo arquivo do teste
-function isTestLocal(testFileName) {
-  try {
-    // Procura o arquivo de teste em force-app/main/default/classes/ ou similar
-    const classesDir = 'force-app/main/default/classes';
-    let testFile = null;
-
-    try {
-      const files = readdirSync(classesDir);
-      const found = files.find(
-        (f) =>
-          (f === `${testFileName}.cls` || f === `${testFileName}.apex`) &&
-          !f.startsWith('.')
-      );
-      if (found) {
-        testFile = join(classesDir, found);
-      }
-    } catch {
-      // Diretório não existe, tenta na raiz ou retorna false
-      return false;
-    }
-
-    if (!testFile) return false;
-
-    const content = readFileSync(testFile, 'utf8');
-    // Procura por patterns de DML: insert, update, delete, Database.insert, etc
-    const dmlPatterns = [
-      /\binsert\s+/i,
-      /\bupdate\s+/i,
-      /\bdelete\s+/i,
-      /\bDatabase\.insert\s*\(/i,
-      /\bDatabase\.update\s*\(/i,
-      /\bDatabase\.delete\s*\(/i,
-      /\bDatabase\.upsert\s*\(/i,
-    ];
-
-    const hasDML = dmlPatterns.some((pattern) => pattern.test(content));
-    return !hasDML; // true se NAO tem DML (é local)
-  } catch {
-    return false; // Se nao conseguir ler, assume que precisa deploy
-  }
-}
-
-// ---------------------------------------------------------------------------
-// 0.5) Estratégia de 2 fases: testes locais não precisam deploy
-// Se o teste é "local" (sem DML) e não foi dado --test-only/--deploy explícito,
-// pula o deploy e roda só o teste do que já existe. Economiza 60+ segundos por ciclo.
-// ---------------------------------------------------------------------------
-if (testIsLocal && !doDeploy && !testOnly && !forceNoLocalCheck) {
-  // Aviso ao agente: teste local detectado, rodando sem deploy
-  console.error(`📍 FASE 1 (LOCAL): Teste "${testName}" é local (sem DML). Rodando sem deploy...`);
-  willDeploy = false;
-} else if (!doDeploy && !testOnly) {
-  willDeploy = false;
 }
 
 // ---------------------------------------------------------------------------
@@ -319,15 +261,6 @@ emit(
     totalLines,
     coveredLines,
     uncoveredLines,
-    // Sinal da ESTRATÉGIA DE 2 FASES
-    testIsLocal,
-    phase1Local: testIsLocal && coveredPercent < 75,
-    phase2Org: testIsLocal && coveredPercent >= 75,
-    hint: testIsLocal
-      ? coveredPercent < 75
-        ? `FASE 1 (Local): ${coveredPercent}% < 75%. Próximos testes rodarem SEM deploy. Deploy só quando atingir 75%.`
-        : `FASE 2 (Org): ${coveredPercent}% >= 75%. Próximos testes com DML precisam fazer deploy.`
-      : undefined,
     // Se a classe nao apareceu na cobertura, liste o que apareceu (ajuda a
     // diagnosticar nome errado, trigger, ou teste que nao exercita a classe).
     availableCoverage: entry ? undefined : covList.map((c) => c.name || c.Name),
