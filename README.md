@@ -116,6 +116,35 @@ meu-projeto-salesforce/
         └── VENDOR-sf-skills-LICENSE-Apache-2.0.txt
 ```
 
+**Jeito recomendado — UM comando (clona o repo e copia o `.claude` inteiro pra raiz
+do seu projeto).** Rode **de dentro da pasta do seu projeto Salesforce** (onde esta o
+`force-app`):
+
+```powershell
+# Windows (PowerShell):
+git clone --depth 1 https://github.com/brunotrolo/Salesforce-LoopAgentApex.git .skill-tmp; New-Item -ItemType Directory -Force .claude | Out-Null; Copy-Item -Recurse -Force .skill-tmp\.claude\* .claude\; Remove-Item -Recurse -Force .skill-tmp
+```
+
+```bash
+# Mac / Linux / Git Bash:
+git clone --depth 1 https://github.com/brunotrolo/Salesforce-LoopAgentApex.git .skill-tmp && mkdir -p .claude && cp -r .skill-tmp/.claude/. .claude/ && rm -rf .skill-tmp
+```
+
+Ele clona numa pasta temporaria, copia **so o conteudo do `.claude`** (a skill inteira
++ as 7 oficiais + `settings.json`) pra raiz do seu projeto, e apaga a temporaria.
+
+> 🔄 **Para ATUALIZAR a skill depois:** rode **o mesmo comando** de novo — ele
+> sobrescreve o `.claude` com a versao mais nova da `main`.
+>
+> ⚠️ **Consequencia (por ser copia, nao clone):** a pasta do seu projeto **nao e um
+> clone** deste repo, entao o agente **nao consegue dar `git push`** de recomendacoes
+> daqui. Para registrar aprendizados de um run, traga o resultado
+> (`RECOMMENDATIONS.md`) para uma sessao neste repositorio-casa, onde a revisao e o
+> push acontecem. (Quer que o proprio agente empurre da sua maquina? Ai trabalhe
+> DENTRO de um clone deste repo — veja "Contribuir de volta", no fim.)
+
+**Alternativa manual (copiar na mao):**
+
 ```bash
 # por PROJETO (vale so nesse projeto):
 cp -R .claude/skills /caminho/do/seu-projeto-sfdx/.claude/
@@ -125,9 +154,10 @@ cp .claude/settings.json /caminho/do/seu-projeto-sfdx/.claude/
 cp -R .claude/skills ~/.claude/
 ```
 
-> Ja tem um `.claude/settings.json` no seu projeto? **Nao sobrescreva** — mescle o
-> bloco `permissions` (`deny`) e `hooks.PreToolUse` deste repositorio com o seu (veja
-> "Travas de seguranca" abaixo).
+> Ja tem um `.claude/settings.json` no seu projeto? O comando acima **sobrescreve** —
+> se voce tinha configuracoes proprias, mescle o bloco `permissions` (`deny`) e
+> `hooks.PreToolUse` deste repositorio com o seu (veja "Travas de seguranca" abaixo)
+> em vez de usar o comando de um passo.
 
 **3) Abra o Claude Code dentro do projeto.** No terminal, entre na pasta do projeto
 e rode:
@@ -243,8 +273,9 @@ org/registros e bloqueado em **tres camadas independentes**, ja incluidas no
 3. **Hook `PreToolUse` (`scripts/guard.mjs`)** — inspeciona cada acao com **duas
    respostas**:
    - **`deny` (bloqueio duro)** para **comandos** destrutivos: `sf project/org/data
-     delete`, deploy com `--pre`/`--post-destructive-changes`, e `rm`/`del`/`Remove-Item`
-     de `.cls`/`.cls-meta.xml`. Nao ha aprovacao possivel.
+     delete`, deploy com `--pre`/`--post-destructive-changes`, `rm`/`del`/`Remove-Item`
+     de `.cls`/`.cls-meta.xml`, `find ... -delete` sobre codigo Apex, `rm -rf` de
+     `force-app`/`classes`, e `mv`/`move` de `.cls`/`.trigger`. Nao ha aprovacao possivel.
    - **`ask` (pede aprovacao)** quando um `Write`/`Edit` **sobrescreve** um `.cls`/
      `.trigger` de **PRODUCAO ja existente** (inclui a classe sob teste) — foi o vetor
      do bug. A `apex-test-loop` nunca faz isso; mas a `platform-apex-generate` pode
@@ -316,7 +347,7 @@ Na pratica:
       parallel-methods.md           # classes grandes: fan-out por metodo com autoria paralela/deploy sequencial
       guided-mode.md                # roteiro do modo guiado (para leigos, PT)
       scaffolding-dependencies.md   # orquestracao do scaffold dev (__c/__mdt/classes)
-      sf-cli-and-coverage.md        # contrato do apex-coverage.mjs + comandos sf de fallback
+      sf-cli-and-coverage.md        # comandos sf crus (deploy/run/cobertura) + fallback quando o script falha
   platform-apex-test-generate/      # \
   platform-apex-test-run/           #  |
   platform-apex-generate/           #  |  7 skills OFICIAIS importadas (craft),
@@ -334,9 +365,10 @@ Na pratica:
 
 ## Memoria de estado (o loop lembra onde parou)
 
-O loop salva um **checkpoint por classe** em
-`.claude/apex-test-loop/state/<Classe>.md` no seu projeto: cobertura atual, iteracao,
-linhas que faltam, o que ja foi feito e o **proximo passo**. Na pratica:
+O loop salva um **checkpoint por classe** num caminho **neutro de ferramenta** —
+`.apex-test-loop/state/<Classe>.md` na raiz do seu projeto (fora de `.claude`/
+`.opencode`, para Claude Code e OpenCode lerem o MESMO estado): cobertura atual,
+iteracao, linhas que faltam, o que ja foi feito e o **proximo passo**. Na pratica:
 
 - Fechou o terminal no meio? Caiu a sessao? E so dizer **"continue de onde paramos"**
   (ou `/apex-test-loop CardHandler` de novo) — ele le o checkpoint e **retoma dali**,
@@ -363,6 +395,28 @@ a skill se concordar"*. Ai cada item vira `🟢 Aprovada` / `⚪ Reprovada` (com
 melhorias ja aplicadas (`R-0001` em diante, com o PR de cada uma) esta la como
 exemplo do formato — inclusive a propria arquitetura hibrida e a memoria de estado
 nasceram desse ciclo.
+
+### Contribuir de volta (empurrar melhorias para a `main`)
+
+O metodo de instalacao de um comando **copia** o `.claude` para o seu projeto — otimo
+para RODAR o loop, mas essa pasta **nao e um clone** deste repositorio, entao o agente
+nao consegue `git push` de dali. Ha dois jeitos de registrar aprendizados na `main`:
+
+1. **Trazer o resultado para o repositorio-casa (simples):** rode o loop no seu
+   projeto normalmente; quando ele anexar recomendacoes ao `RECOMMENDATIONS.md`, traga
+   esse arquivo para uma sessao **neste repositorio** (que e um clone com `origin`). A
+   revisao/vet e o `git push` acontecem aqui. Depois, no seu projeto, rode o comando de
+   instalacao de novo para puxar a versao atualizada.
+2. **Trabalhar dentro de um clone (o agente empurra sozinho):** em vez de copiar o
+   `.claude`, **clone** este repo e trabalhe dentro dele, colocando o seu codigo
+   Salesforce (`force-app` + `sfdx-project.json`) na mesma pasta — se for confidencial,
+   adicione-o ao `.gitignore` para nunca subir. Assim o loop roda e o agente comita/
+   empurra melhorias da skill direto na `main`.
+
+> **Por que o push as vezes "nao funciona"?** O erro classico e `fatal: not a git
+> repository`: acontece quando a pasta foi **baixada (zip)** em vez de **clonada**.
+> Pasta baixada nao tem `.git`. Se o `git push` pedir senha, autentique uma vez com
+> `gh auth login` (GitHub CLI) ou use um Personal Access Token como senha.
 
 ## Observacoes
 
