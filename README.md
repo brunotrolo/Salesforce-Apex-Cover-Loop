@@ -86,29 +86,42 @@ partir da pasta `.claude/skills/` do projeto. Escolha o seu caminho abaixo.
   ```
 - Node 18+ (para o script auxiliar): confira com `node --version`.
 
-**2) Coloque a skill no lugar certo.** A estrutura precisa ficar exatamente assim,
-dentro do seu projeto Salesforce (a pasta `.claude` comeca com ponto e pode ficar
+**2) Copie TUDO — nao so a `apex-test-loop`.** A skill delega o "craft" (escrever
+teste, rodar, criar dados/objetos/campos) para 7 skills **oficiais** da Salesforce
+importadas neste repositorio. Se voce copiar so `apex-test-loop/`, a delegacao **nao
+encontra** essas skills no seu projeto e falha silenciosamente. Copie a pasta
+`.claude/skills/` **inteira** (a pasta `.claude` comeca com ponto e pode ficar
 "invisivel" no explorador de arquivos):
 
 ```
 meu-projeto-salesforce/
 └── .claude/
+    ├── settings.json              ← travas de seguranca (deny/ask) + guard
     └── skills/
-        └── apex-test-loop/
-            ├── SKILL.md
-            ├── scripts/
-            └── references/
+        ├── apex-test-loop/        ← a nossa (orquestracao)
+        ├── platform-apex-test-generate/
+        ├── platform-apex-test-run/
+        ├── platform-apex-generate/
+        ├── platform-apex-logs-debug/
+        ├── platform-data-manage/
+        ├── platform-custom-object-generate/
+        ├── platform-custom-field-generate/
+        ├── VENDOR-ATTRIBUTION.md
+        └── VENDOR-sf-skills-LICENSE-Apache-2.0.txt
 ```
-
-Copie a pasta inteira `apex-test-loop` (deste repositorio) para la:
 
 ```bash
 # por PROJETO (vale so nesse projeto):
-cp -R .claude/skills/apex-test-loop /caminho/do/seu-projeto-sfdx/.claude/skills/
+cp -R .claude/skills /caminho/do/seu-projeto-sfdx/.claude/
+cp .claude/settings.json /caminho/do/seu-projeto-sfdx/.claude/
 
 # OU global (vale em TODOS os seus projetos no seu computador):
-cp -R .claude/skills/apex-test-loop ~/.claude/skills/
+cp -R .claude/skills ~/.claude/
 ```
+
+> Ja tem um `.claude/settings.json` no seu projeto? **Nao sobrescreva** — mescle o
+> bloco `permissions` (`deny`) e `hooks.PreToolUse` deste repositorio com o seu (veja
+> "Travas de seguranca" abaixo).
 
 **3) Abra o Claude Code dentro do projeto.** No terminal, entre na pasta do projeto
 e rode:
@@ -322,7 +335,9 @@ Como o arquivo viaja junto com a skill, ele fica atualizado na copia dentro do s
 projeto. Quando quiser incorporar, **basta pedir**: *"leia as recomendacoes e ajuste
 a skill se concordar"*. Ai cada item vira `🟢 Aprovada` / `⚪ Reprovada` (com motivo)
 / `✅ Aplicada` (com o PR), e as aprovadas sao implementadas. O historico das
-melhorias ja aplicadas (PRs #5–#8) esta la como exemplo do formato.
+melhorias ja aplicadas (`R-0001` em diante, com o PR de cada uma) esta la como
+exemplo do formato — inclusive a propria arquitetura hibrida e a memoria de estado
+nasceram desse ciclo.
 
 ## Observacoes
 
