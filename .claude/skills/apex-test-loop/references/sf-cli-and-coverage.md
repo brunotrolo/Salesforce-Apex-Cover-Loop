@@ -139,3 +139,48 @@ Como ler:
   deploy do teste (nunca com `ApexClass:MinhaClasse` de producao no mesmo comando).
   Se o conflito for na propria classe de producao, PARE: e sinal de que a org tem uma
   versao diferente do repo — decisao do humano, nao ignore.
+
+- **Conflito de FORMATO de source** (`sfdx` legado vs `source`/`sfdx-winter23`) →
+  visto em campo: o deploy quebra por diferenca de formato do projeto, nao por codigo.
+  Confira `sfdx-project.json` (`sourceApiVersion`/`packageDirectories`) e rode o deploy
+  a partir da raiz do projeto correto. Se o `apex-coverage.mjs` falhar por isso, use o
+  **fallback de comandos crus** abaixo enquanto o formato nao e resolvido.
+
+## Fallback: comandos `sf` crus quando o script nao roda
+
+Se `apex-coverage.mjs` falhar (Node ausente, conflito de formato de source, erro de
+parse), nao fique travado — reproduza o ciclo na mao. **Dois passos** (o combo
+"deploy+teste num comando so" e mais fragil e as flags variam por versao do CLI;
+prefira os dois passos, que sao estaveis):
+
+```bash
+# 1) Deploy SO da classe de teste (nunca a de producao). NoTestRun: nao roda a suite
+#    inteira da org so por deployar (os testes rodam no passo 2).
+sf project deploy start --metadata ApexClass:<TestClass> \
+  --test-level NoTestRun --ignore-conflicts --json --target-org <alias>
+
+# 2a) Run COMPLETO com cobertura (numero AUTORITATIVO da classe — use este para o loop):
+sf apex run test --class-names <TestClass> --code-coverage --detailed-coverage \
+  --result-format json --synchronous --wait 15 --target-org <alias>
+
+# 2b) Run RAPIDO de poucos metodos (so passa/falha, ao depurar uma falha):
+sf apex run test --tests <TestClass>.<Metodo1>,<TestClass>.<Metodo2> \
+  --result-format human --wait 5 --target-org <alias>
+```
+
+⚠️ **Ressalva de cobertura (importante):** a cobertura do run **2b** (`--tests`, subset)
+so reflete as linhas que AQUELES metodos tocaram — **nao** e a cobertura real da classe.
+Para decidir o que ainda falta cobrir (as `uncoveredLines` que dirigem o loop), use
+SEMPRE o run **2a** (classe inteira). `--tests` e para iterar rapido em falha; classe
+cheia e para medir cobertura.
+
+> ⚠️ **Flags que NAO existem** (alucinadas por modelos fracos em campo — nao use):
+> `sf project deploy start --run-tests ...` e `... --code-coverage` **no deploy** nao
+> sao validos. Cobertura vem do `sf apex run test --code-coverage` (passo 2), nao do
+> `deploy start`. Da mesma forma, `sf apex get test` precisa de `--test-run-id <id>`
+> (nao `--class-names`). Na duvida, `sf <comando> --help`.
+
+> ⚠️ **`--result-format human` NAO serve para o loop determinístico:** o script e o
+> passo "ler linhas nao cobertas" dependem do **`json`** (campo `coverage.coverage[].
+> lines`). O formato `human` e so para um humano olhar no terminal — nao da para
+> parsear `uncoveredLines` dele. Use `human` apenas no run rapido 2b (passa/falha).

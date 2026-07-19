@@ -281,6 +281,20 @@ MESMO estado; veja `references/run-state.md`).
        checkpoint e reporte ao usuario no fim da iteracao, em vez de queimar dezenas
        de chamadas numa falha so. (Uma falha pontual NUNCA deve travar o avanco das
        demais linhas-alvo.)
+     - **⚡ Iteracao rapida ao consertar falha (economiza tempo de org):** ao depurar
+       UM ou poucos metodos que falham, NAO re-rode a suite inteira a cada tentativa.
+       Depois do deploy do teste, rode SO os metodos em questao:
+       ```bash
+       sf apex run test --tests <Classe>Test.<metodo1>,<Classe>Test.<metodo2> \
+         --result-format human --wait 5 --target-org <alias>
+       ```
+       Isso executa 2-3 metodos em segundos, em vez de todos (dezenas → minutos).
+       **⚠️ Ressalva CRITICA (nao pule):** essa run parcial serve so para **passa/
+       falha** — a **cobertura** e as `uncoveredLines` dela sao PARCIAIS (so das linhas
+       que esses metodos tocaram), NAO a cobertura real da classe. Para o numero de
+       cobertura que DIRIGE o loop (passo 4), rode SEMPRE a classe inteira via o script
+       (`--test-only`, que usa `--class-names`). Regra: `--tests` para iterar rapido em
+       falha; `apex-coverage.mjs` (classe cheia) para medir cobertura de verdade.
    - Passou → veja `coveredPercent` e `uncoveredLines`.
 
 4. **Decidir e SALVAR o checkpoint**:

@@ -28,6 +28,11 @@ existe tanto no repositorio-casa quanto na copia dentro do seu projeto Salesforc
   termos acionaveis (qual arquivo/regra/passo). Nada de generico.
 - **ID sequencial**: use o proximo `R-XXXX` livre.
 - **Poucos e bons**: no maximo ~3 por run; so o que teve friccao de verdade.
+- **Antes de "commitar na main", faca o PREFLIGHT de git** (`git rev-parse
+  --is-inside-work-tree`): se a pasta foi BAIXADA (zip) e nao clonada, nao ha `.git` e
+  o push falha silenciosamente — avise o usuario e aponte a receita em
+  `references/contribution-guidelines.md` ("Se o `git push` falhar"). Nunca diga que
+  registrou no GitHub sem o push ter dado certo.
 
 ---
 
@@ -425,4 +430,61 @@ existe tanto no repositorio-casa quanto na copia dentro do seu projeto Salesforc
   deixar passar um destrutivo). Melhoria futura possivel: inspecionar so o verbo/token
   inicial do comando, ou rebaixar casos ambiguos de `deny` para `ask`.
 
-<!-- A skill anexa novas propostas ABAIXO desta linha, como R-0031, R-0032... -->
+### R-0031 — Inventario do Passo 0 portavel (grep quebra no Windows/OpenCode)
+- **Status:** ✅ Aplicada (orientacao) — vinda de run em campo (OpenCode/DeepSeek, CustomerData_ctr)
+- **Data:** 2026-07-19
+- **Gatilho:** Num run no OpenCode (Windows), o `grep -n "^\s*(public|private...)"` do
+  Passo 0 (inventario de metodos) nao funcionou como esperado — alternacao `(a|b)` exige
+  `-E`, e `rg` nao estava disponivel. O agente perdeu tempo achando alternativa.
+- **Problema:** O Passo 0 sugere um comando `grep` Unix-assumido que nao e portavel
+  entre shells/ferramentas.
+- **Melhoria:** Usar a **ferramenta Grep do proprio agente** (Claude Code e OpenCode
+  tem busca embutida) OU um one-liner Node (Node ja e requisito do `apex-coverage.mjs`)
+  em vez de depender do `grep` do shell. O comando `grep` no SKILL.md fica como
+  ILUSTRACAO do padrao a buscar, nao como comando literal obrigatorio. (Nao trocamos o
+  texto do Passo 0 agora para nao inflar o diff; a orientacao vale.)
+
+### R-0032 — Iteracao rapida com `--tests` ao depurar falha (COM ressalva de cobertura)
+- **Status:** ✅ Aplicada (SKILL.md passo 3 + sf-cli-and-coverage.md)
+- **Data:** 2026-07-19
+- **Gatilho:** Em campo, cada tentativa de consertar 1-2 metodos re-rodava a suite
+  inteira (`--class-names`, dezenas de testes, ~15s+) — o usuario perguntou "por que
+  esta demorando tanto?".
+- **Problema:** Ao DEPURAR uma falha, re-rodar todos os testes a cada tentativa e
+  desperdicio de tempo de org.
+- **Melhoria:** Passo 3 do SKILL.md ganha "Iteracao rapida": ao consertar poucos
+  metodos, rodar SO eles com `sf apex run test --tests <Classe>Test.<m1>,<m2>
+  --result-format human` (segundos). **RESSALVA CRITICA (que o run de campo NAO
+  percebeu):** cobertura de um subset `--tests` e PARCIAL — nao e a cobertura real da
+  classe. As `uncoveredLines` que DIRIGEM o loop tem de vir SEMPRE do run da classe
+  inteira (`apex-coverage.mjs`/`--class-names`). Documentado nos dois arquivos. Sem
+  essa ressalva, o loop mediria cobertura errada (subestimada) e caçaria linhas-fantasma.
+
+### R-0033 — Fallback de comandos `sf` crus quando o `apex-coverage.mjs` falha
+- **Status:** ✅ Aplicada (sf-cli-and-coverage.md) — com comandos CORRIGIDOS
+- **Data:** 2026-07-19
+- **Gatilho:** Em campo, o `apex-coverage.mjs` falhou por conflito de FORMATO de source
+  (`sfdx` legado vs `source`/`sfdx-winter23`); sem fallback documentado, o loop ficou
+  sem direcao e o agente improvisou comandos (alguns com flags inexistentes).
+- **Problema:** A skill so previa o caminho feliz (o script); quando ele quebra, faltava
+  um plano B de comandos crus.
+- **Melhoria:** Nova secao "Fallback: comandos sf crus" em `sf-cli-and-coverage.md`:
+  deploy do teste (2 passos, estaveis) + run completo (json, cobertura autoritativa) +
+  run rapido (`--tests`, human, so passa/falha) + nota do conflito de formato de source.
+  **Correcao importante:** o run de campo propôs flags ALUCINADAS (`sf project deploy
+  start --run-tests ... --code-coverage`, `sf apex get test --class-names`) — essas NAO
+  existem; a secao de fallback lista explicitamente essas flags como "nao use" para o
+  proximo agente nao repetir o erro.
+
+> **Nota de triagem (run de campo — OpenCode/DeepSeek V4 Flash Free, CustomerData_ctr 97%):**
+> o agente tambem gerou um `AGENTS.md` na raiz com "otimizacoes". As BOAS ideias (lote
+> por deploy, helper de mock, DataFactory, `startTest/stopTest` so no alvo) ja estao na
+> skill (R-0025, P-0003/4/5). As ideias REJEITADAS por serem tecnicamente erradas:
+> (a) `--result-format human` como padrao — quebra o parse determinístico (o loop
+> precisa de `json`); (b) flags inexistentes no deploy/`get test` (acima); (c) "evitar
+> `--synchronous`" — sync e o certo para UMA classe e retorna a cobertura direto; (d)
+> "validar sintaxe com `sf apex parse`" — nao ha compilacao local confiavel de Apex.
+> Um `AGENTS.md` divergente na raiz confunde runs futuros — o certo e a skill ser a
+> fonte unica; as partes corretas ja foram absorvidas aqui.
+
+<!-- A skill anexa novas propostas ABAIXO desta linha, como R-0034, R-0035... -->

@@ -21,6 +21,9 @@ Veja `.claude/skills/apex-test-loop/RECOMMENDATIONS.md` (detalhado). Resumo:
 | R-0028 | ✅ | Caminho neutro do state (Claude Code × OpenCode) | run-state.md, SKILL.md |
 | R-0029 | ✅ | Centralizar padrões agnósticos + split de ledgers | references/, SKILL.md, contribution-guidelines.md |
 | R-0030 | ✅ | Endurecer guard (find/mv/rm-dir) + falso-positivo por texto assumido | guard.mjs, SKILL.md |
+| R-0031 | ✅ | Inventario do Passo 0 portavel (grep quebra no Windows) | SKILL.md (orientacao) |
+| R-0032 | ✅ | Iteracao rapida com `--tests` ao depurar (c/ ressalva de cobertura) | SKILL.md, sf-cli-and-coverage.md |
+| R-0033 | ✅ | Fallback de comandos `sf` crus (flags alucinadas corrigidas) | sf-cli-and-coverage.md |
 
 ---
 
@@ -353,4 +356,4 @@ Quando rodar a skill `apex-test-loop` em uma classe:
 ---
 
 **Atualizado em:** 2026-07-19  
-**Versão:** 1.2 (30 recomendações da skill + 10 padrões de campo + 5 anti-padrões)
+**Versão:** 1.3 (33 recomendações da skill + 10 padrões de campo + 5 anti-padrões)
