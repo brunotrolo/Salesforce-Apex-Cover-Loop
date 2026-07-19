@@ -275,6 +275,7 @@ Na pratica:
       apex-coverage.mjs             # deploy + run test + parse -> JSON com linhas nao cobertas
       guard.mjs                     # hook PreToolUse: deny destrutivo / ask sobrescrita de producao
     references/
+      run-state.md                  # memoria de estado: checkpoint por classe (retomar o loop)
       guided-mode.md                # roteiro do modo guiado (para leigos, PT)
       scaffolding-dependencies.md   # orquestracao do scaffold dev (__c/__mdt/classes)
       sf-cli-and-coverage.md        # contrato do apex-coverage.mjs + comandos sf de fallback
@@ -292,6 +293,22 @@ Na pratica:
 > O craft (mocks, asserts, data factory, bulk, async, DML) agora vive nas skills
 > oficiais — por isso a nossa `apex-test-loop` ficou enxuta (so o loop + seguranca +
 > guiado + scaffold).
+
+## Memoria de estado (o loop lembra onde parou)
+
+O loop salva um **checkpoint por classe** em
+`.claude/apex-test-loop/state/<Classe>.md` no seu projeto: cobertura atual, iteracao,
+linhas que faltam, o que ja foi feito e o **proximo passo**. Na pratica:
+
+- Fechou o terminal no meio? Caiu a sessao? E so dizer **"continue de onde paramos"**
+  (ou `/apex-test-loop CardHandler` de novo) — ele le o checkpoint e **retoma dali**,
+  sem recomecar do zero.
+- O arquivo e um Markdown legivel: voce pode abrir e ver o progresso a qualquer momento.
+- Se o loop parou **bloqueado** (ex.: dependencia faltando), o checkpoint guarda o
+  motivo e o que voce precisa decidir — resolvido isso, ele retoma.
+
+> Nao confundir com o `RECOMMENDATIONS.md` (a memoria LONGA, do que a skill aprende
+> entre runs). O checkpoint e a memoria de UM run sobre UMA classe.
 
 ## Autoaprendizado (a skill sugere melhorias a si mesma)
 

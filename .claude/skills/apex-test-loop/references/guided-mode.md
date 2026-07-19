@@ -20,6 +20,11 @@ Use este roteiro quando o usuario pedir o modo guiado (`--guiado`, `--passo-a-pa
 ## Roteiro
 
 ### Etapa 1 — Boas-vindas e visao geral
+**Antes de tudo**: se existir estado salvo da classe (`.claude/apex-test-loop/state/`),
+ofereca retomar: *"Encontrei um progresso salvo: cobertura em 88%, faltava cobrir a
+linha 45. Quer continuar de onde paramos?"*. Tranquilize tambem que **o progresso
+fica salvo** a cada volta ("se a gente parar aqui, eu retomo deste ponto depois").
+
 Explique, em poucas linhas, o que vamos fazer e o ciclo de 4 passos. Exemplo de fala:
 
 > "Vamos criar (ou melhorar) a classe de teste da sua classe **X** para ela cobrir

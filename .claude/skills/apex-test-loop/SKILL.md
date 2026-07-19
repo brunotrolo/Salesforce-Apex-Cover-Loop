@@ -9,7 +9,9 @@ description: >-
   skills oficiais do sf-skills importadas neste projeto. TRIGGER quando: o usuario
   pedir "cobrir/aumentar a cobertura da classe X ate ~99% em loop", "criar classe de
   teste com o loop", invocar /apex-test-loop <Classe>, pedir o modo guiado
-  (--guiado, "me ensine", "sou iniciante") ou o scaffold (--scaffold). DO NOT TRIGGER
+  (--guiado, "me ensine", "sou iniciante"), o scaffold (--scaffold), ou pedir para
+  RETOMAR/continuar um loop anterior ("continue de onde paramos", "retoma a classe X"
+  — ha memoria de estado por classe). DO NOT TRIGGER
   para escrever UM teste avulso sem o loop de cobertura (use platform-apex-test-generate),
   rodar testes/ver cobertura sem loop (use platform-apex-test-run), autorar/refatorar
   producao (use platform-apex-generate), ou testes Jest/LWC.
@@ -88,6 +90,12 @@ Se o nome nao foi dado, pergunte qual classe cobrir.
 
 ## Passo 0 — Contexto e SEGURANCA (rodar UMA vez)
 
+**Memoria de estado (PRIMEIRA acao):** verifique se existe
+`.claude/apex-test-loop/state/<Classe>.md` no projeto (veja `references/run-state.md`).
+- Existe com `status: em_andamento`/`pausado_bloqueado` → **resuma ao usuario onde
+  parou e RETOME dali** (nao recomece do zero, salvo pedido explicito).
+- Nao existe → crie a partir do template antes da primeira iteracao.
+
 **Checagem de seguranca (obrigatoria):** rode `git status`; a classe de producao e
 **somente leitura** para esta skill — voce simplesmente **nao mexe** nela.
 
@@ -147,12 +155,15 @@ Se o nome nao foi dado, pergunte qual classe cobrir.
    - `failures` nao vazio → corrija **o teste** (nunca remova assert) e volte a 2.
    - Passou → veja `coveredPercent` e `uncoveredLines`.
 
-4. **Decidir**:
+4. **Decidir e SALVAR o checkpoint**:
    - `coveredPercent >= 99` **e** todo metodo com assert real → **concluir**.
    - Senão → leia a classe de producao **nas `uncoveredLines`**, entenda o cenario
      que falta (ramo `else`? `catch`? item de `switch`? loop vazio/cheio?), adicione
      **um metodo de teste** para aquele caminho (aplicando o craft de
      platform-apex-test-generate) e volte a 2.
+   - **Em AMBOS os casos, atualize `state/<Classe>.md`** (iteracao, cobertura,
+     historico, linhas restantes, feito, proximo passo) — e parte do passo, nao um
+     extra. E isso que permite retomar o loop de onde parou.
 
 ## ⛔ Regras de Ouro (inegociaveis — anti-cheat)
 
@@ -176,9 +187,11 @@ desses padroes vive nas skills oficiais (**platform-apex-test-generate** /
 ## Condicao de parada e encerramento
 
 - **Parada de seguranca**: apos **6 iteracoes** sem evoluir (ou erro cronico de
-  deploy), PARE e gere relatorio (linha travada, motivo, recomendacao).
+  deploy), PARE e gere relatorio (linha travada, motivo, recomendacao). No estado:
+  `status: pausado_bloqueado` + o motivo exato + o que o humano precisa decidir —
+  assim, resolvido o bloqueio, o loop retoma dali.
 - **Encerramento**: resumo curto — cobertura final, metodos criados e o cenario que
-  cada um valida.
+  cada um valida. No estado: `status: concluido` + resumo final.
 
 ## Fase de retrospectiva (autoaprendizado da skill)
 
@@ -203,11 +216,13 @@ conceitos; mostre o progresso (`72% -> 88% -> 99%`); as Regras de Ouro continuam
 ## Referencias
 
 **Nossas (unicas desta camada):**
+- `references/run-state.md` — memoria de estado do run (checkpoint por classe:
+  onde le/escreve, regras e template para retomar o loop de onde parou).
 - `references/guided-mode.md` — roteiro do modo guiado (PT, para leigos).
 - `references/scaffolding-dependencies.md` — orquestracao do scaffold dev/treino.
 - `references/sf-cli-and-coverage.md` — contrato do `apex-coverage.mjs` e comandos
   `sf` crus de fallback.
-- `RECOMMENDATIONS.md` — livro-razao de autoaprendizado.
+- `RECOMMENDATIONS.md` — livro-razao de autoaprendizado (memoria LONGA, entre runs).
 
 **Craft (skills oficiais importadas — veja a tabela de Delegacao):**
 platform-apex-test-generate, platform-apex-test-run, platform-data-manage,

@@ -145,4 +145,32 @@ existe tanto no repositorio-casa quanto na copia dentro do seu projeto Salesforc
 - **Melhoria:** Regras de Ouro do SKILL.md agora exigem **bulk 251+**, **assert de valor
   exato (nunca range)** e **1 comportamento por metodo** — alinhadas com o craft oficial.
 
-<!-- A skill anexa novas propostas ABAIXO desta linha, como R-0012, R-0013... -->
+### R-0012 — Memoria de estado do run (checkpoint por classe)
+- **Status:** ✅ Aplicada (PR #13)
+- **Data:** 2026-07-19
+- **Gatilho:** Pedido do usuario (arquitetura de agent loop): o agente precisa saber
+  "onde paramos e o que fizemos em cada interacao" para retomar apos interrupcao,
+  troca de sessao ou compactacao de contexto.
+- **Problema:** O loop nao tinha checkpoint — interrompeu, recomecou do zero.
+- **Melhoria:** `references/run-state.md` (schema + regras + template) e integracao no
+  SKILL.md: Passo 0 verifica/retoma `.claude/apex-test-loop/state/<Classe>.md`; passo 4
+  atualiza o checkpoint a cada iteracao; encerramento/parada gravam
+  `concluido`/`pausado_bloqueado`. Modo guiado oferece retomada; TRIGGER inclui
+  "continue de onde paramos". Complementa o RECOMMENDATIONS.md (memoria longa).
+
+### R-0013 — Empacotar como Plugin do Claude Code
+- **Status:** 🟡 Proposta
+- **Data:** 2026-07-19
+- **Gatilho:** Discussao dos blocos de composicao (skills, automacoes, plugins/MCPs,
+  sub-agentes, worktrees): plugins facilitariam distribuir/versionar o conjunto
+  (8 skills + settings + hook do guard) como um pacote instalavel.
+- **Problema:** Hoje a instalacao e "copie .claude/skills/ e mescle o settings.json" —
+  funciona, mas e manual e propensa a erro de merge.
+- **Melhoria proposta:** Criar a estrutura de plugin (`.claude-plugin/plugin.json` +
+  skills + hook empacotado) validando o formato contra a doc oficial antes (nao
+  meio-implementar). Requer decidir: repo vira plugin, ou pasta `plugin/` gerada.
+- **Nota:** Sub-agentes, worktrees e mais automacoes foram avaliados e NAO recomendados
+  por ora — o loop e sequencial (cada iteracao depende da cobertura anterior); seria
+  complexidade sem ganho.
+
+<!-- A skill anexa novas propostas ABAIXO desta linha, como R-0014, R-0015... -->
