@@ -3,6 +3,22 @@
 Referencia para o loop. O script `scripts/apex-coverage.mjs` automatiza tudo isto;
 use os comandos crus quando o script nao puder rodar ou para depurar.
 
+## ⛔ NUNCA trunque a saida do apex-coverage.mjs (aprendido em campo)
+
+Num run real, o script foi rodado com `... | tail -5` "para poupar contexto" — o
+JSON foi cortado, `coveredPercent`/`uncoveredLines` se perderam, e a sessao teve que
+rodar TODO o ciclo de deploy+teste de novo (varios minutos) so para reobter o que ja
+tinha sido gerado e jogado fora. Regra:
+
+- **Sempre** redirecione a saida completa para arquivo, e leia o arquivo depois:
+  ```bash
+  node .claude/skills/apex-test-loop/scripts/apex-coverage.mjs ... \
+    > .claude/apex-test-loop/state/cov-atual.json 2> .claude/apex-test-loop/state/cov-atual.err
+  ```
+- **Nunca** canalize por `tail`/`head`/`grep` antes de o JSON estar salvo em arquivo.
+- O arquivo de cobertura da iteracao e um ARTEFATO do run (o proximo passo depende
+  dele) — trate-o como tal, nao como ruido de console.
+
 ## Pre-requisitos
 
 - Salesforce CLI **v2** (`sf`, nao o legado `sfdx`). Verifique: `sf --version`.
@@ -14,13 +30,17 @@ use os comandos crus quando o script nao puder rodar ou para depurar.
 ## 1) Deploy da classe + teste (obrigatorio antes de rodar)
 
 `sf apex run test` roda o que **ja esta na org**. Entao, a cada iteracao, envie a
-classe de producao e a classe de teste (e utilitarios como `TestDataFactory`):
+classe de TESTE (e utilitarios como `TestDataFactory`) — **NAO a de producao**, que
+ja esta na org e nao deve ser reenviada/sobrescrita (mesmo padrao do `--test-only`):
 
 ```bash
 sf project deploy start \
-  --metadata ApexClass:MinhaClasse ApexClass:MinhaClasseTest \
+  --metadata ApexClass:MinhaClasseTest \
   --json --target-org minhaOrg
 ```
+
+So inclua `ApexClass:MinhaClasse` (producao) se ela for **nova ou legitimamente
+alterada** — o equivalente ao `--deploy` do script, que quase nunca e o caso.
 
 - Em **scratch org / org com source tracking**, `sf project deploy start` (sem
   `--metadata`) envia tudo que mudou localmente — tambem funciona.

@@ -291,4 +291,83 @@ existe tanto no repositorio-casa quanto na copia dentro do seu projeto Salesforc
   delegacao ao craft oficial, proibicoes nomeadas, reportar bloqueio de runtime
   em vez de decidir sozinho).
 
-<!-- A skill anexa novas propostas ABAIXO desta linha, como R-0022, R-0023... -->
+### R-0022 — [campo] Checkpoint duplicado/divergente quebra retomada
+- **Status:** ✅ Aplicada (PR #19)
+- **Data:** 2026-07-19 (registrada em campo; processada e aplicada aqui)
+- **Gatilho:** Dois arquivos de estado para a mesma classe (`CaseHandler.md` 37%/it7
+  vs `CaseHandler-Copia.md` 60%/it1) obrigaram a remedir a cobertura do zero.
+- **Melhoria aplicada:** `run-state.md` define UM arquivo canonico por classe e
+  proibe copias (`-Copia`/`-backup`); historico vai DENTRO do arquivo ou no git;
+  Passo 0 para e pergunta se houver mais de um `state/<Classe>*.md` (ponto nomeado).
+
+### R-0023 — [campo] Nunca truncar (tail/head) a saida do apex-coverage.mjs
+- **Status:** ✅ Aplicada (PR #19)
+- **Gatilho:** `| tail -5` cortou o JSON de cobertura; a sessao teve que rodar todo
+  o ciclo deploy+teste de novo (minutos) para reobter o que ja tinha sido gerado.
+- **Melhoria aplicada:** `sf-cli-and-coverage.md` abre com a regra: saida SEMPRE
+  redirecionada para arquivo (`> cov-atual.json` + stderr), nunca canalizada por
+  `tail`/`head`/`grep` antes de salva. Reforcada na "Dieta de contexto" do SKILL.md.
+
+### R-0024 — [campo] Circuit-breaker ao investigar UMA falha especifica
+- **Status:** ✅ Aplicada (PR #19)
+- **Gatilho:** ~8 tool calls investigando um unico teste falho (esperado 2, obteve 1)
+  sem convergir — leitura de producao em 4 trechos + Apex anonimo contra a org.
+- **Melhoria aplicada:** SKILL.md passo 3: causa nao clara em 2-3 passos → UM deploy
+  com diagnostico dirigido, seguindo com o resto do lote em paralelo; se nem assim
+  fechar, registrar como pendencia no checkpoint e reportar no fim da iteracao. Uma
+  falha pontual nunca trava o avanco das demais linhas-alvo.
+
+### R-0025 — Disciplina de execucao: autonomia por padrao, lote por deploy, dieta de contexto
+- **Status:** ✅ Aplicada (PR #19)
+- **Data:** 2026-07-19
+- **Gatilho:** Feedback direto do usuario apos o run do CaseHandler: "levando muito
+  mais tempo e interacoes do que o previsto" + "ele fica me perguntando se aprovo,
+  tenho que ficar preso na frente do PC". E o achado de que o passo 4 do proprio
+  SKILL.md instruia "adicione UM metodo de teste" por iteracao (um-por-vez).
+- **Melhoria aplicada:** Nova secao "⚡ Disciplina de execucao" no SKILL.md:
+  (1) autonomia por padrao — perguntar SO nos 5 pontos nomeados (producao/scaffold/
+  meta/estado ambiguo/parada), todo o resto decide-e-reporta; (2) lote maximo por
+  deploy — exito medido em "linhas-alvo eliminadas por deploy", nunca um teste por
+  vez (passo 4 corrigido); (3) dieta de contexto — ler producao por intervalos do
+  inventario, output para arquivo, checkpoint como fonte (nao rederivar), replies
+  curtas durante o loop.
+
+### R-0026 — Benchmark humano×agente + minerar testes existentes como receita de dado
+- **Status:** ✅ Aplicada (PR #19)
+- **Data:** 2026-07-19
+- **Gatilho:** Comparacao objetiva com a classe de teste HUMANA que roda em producao
+  (CaseHandler_tst): humano 2423 linhas/23 testes/**9 asserts**/0 @TestSetup (o
+  setToQueueTest tem ~700 linhas e ZERO assert); agente 1905 linhas/117 testes/
+  **130 asserts** de valor exato com mensagem/0 try-catch de fachada. O agente perdia
+  so em cobertura bruta (61% vs 75%+) — e a causa era DML: o humano faz 54 DMLs de
+  Case (prova de que o Flow E satisfazivel), o agente tinha ido para memoria.
+- **Melhoria aplicada:** `runtime-blockers.md` (Flow) e Passo 0 item 4 ganham o
+  "atalho de ouro": ANTES de decifrar automacao na unha ou ir para memoria, minerar
+  classes de teste existentes que ja inserem o objeto — elas sao a receita comprovada
+  do dado que passa. Benchmark registrado aqui como evidencia de que as Regras de
+  Ouro produzem teste categoricamente superior em verificacao (14x asserts).
+
+### R-0027 — MVP deployavel como PADRAO; verificacao exaustiva vira `--rigoroso` (opt-in)
+- **Status:** ✅ Aplicada (PR #19)
+- **Data:** 2026-07-19
+- **Gatilho:** Definicao de produto pelo usuario: "nao preciso de uma classe de teste
+  que ganharia premios; preciso de uma que passe na cobertura da plataforma com 99%+
+  — minimo viavel para deployar entre ambientes".
+- **Problema:** As Regras de Ouro exigiam assert exaustivo por padrao. Isso (a) nao e
+  exigido pela plataforma para deploy; (b) cada assert de valor exato e um ponto de
+  quebra entre ambientes (config diverge — o baseline humano com 9 asserts sobrevive
+  a qualquer sandbox); (c) grande parte das iteracoes queimadas em campo foi
+  corrigindo asserts de expectativa errada.
+- **Melhoria aplicada:** SKILL.md ganha "🎯 Objetivo de qualidade": **MVP deployavel
+  e o PADRAO** (>= 99%, todos passando, portavel; asserts so quando baratos/estaveis;
+  guardas de config permitidas como portabilidade; bulk recomendado mas deve PASSAR).
+  Regras de Ouro reorganizadas em **Travas (sempre)** — nunca tocar producao, sem
+  SeeAllData/IDs hardcoded (quebram a portabilidade que o MVP exige), nunca fingir
+  cobertura, nunca remover teste que passa, todos os testes passam — e **Regras de
+  qualidade [rigoroso]** (assert exato+mensagem, 1 comportamento/metodo, bulk
+  mandatorio, sem guardas), aplicadas so com `--rigoroso`. Condicao de conclusao,
+  passo 3, runtime-blockers, guided-mode e parallel-methods alinhados aos modos.
+  Nota tecnica preservada: excecao no meio do metodo corta cobertura das linhas
+  seguintes — dado real segue sendo a melhor tatica DE COBERTURA mesmo no MVP.
+
+<!-- A skill anexa novas propostas ABAIXO desta linha, como R-0028, R-0029... -->

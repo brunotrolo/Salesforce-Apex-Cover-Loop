@@ -9,10 +9,16 @@ compila e roda, mas **falha em execucao** por automacao ou configuracao da org:
   Custom Settings vazios) e o codigo estoura (`List index out of bounds`, NPE);
 - um **governor limit** estoura no teste (CPU time, SOQL limit), geralmente em bulk.
 
-## ⛔ O que NUNCA fazer diante de um bloqueio de runtime
+## ⛔ O que (nao) fazer diante de um bloqueio de runtime — depende do MODO
 
-Estes tres atalhos foram observados em campo e sao **proibidos** (violam as Regras
-de Ouro — se voce se pegar fazendo isso, PARE e registre no ledger imediatamente):
+> **Modo MVP (padrao):** o objetivo e cobertura+testes passando+portabilidade. Guardas
+> de config (`if (!lista.isEmpty())`) e try/catch de portabilidade sao **permitidos**
+> como fallback — MAS lembre: excecao/guard que desvia o fluxo **corta a cobertura**
+> das linhas seguintes, entao **dado real continua sendo a melhor tatica de
+> COBERTURA** (use o guard como fallback, nao como primeira opcao). O que segue
+> proibido mesmo no MVP: remover teste que ja passa, e deixar teste falhando.
+
+No **modo `--rigoroso`**, estes tres atalhos sao **proibidos** (observados em campo):
 
 1. **Remover/reduzir o cenario obrigatorio** (ex.: apagar o teste bulk porque o CPU
    estourou). O cenario existe para pegar exatamente esse tipo de problema.
@@ -35,8 +41,10 @@ Ordem de ataque:
 3. **Se a causa e a producao** (ex.: SOQL dentro de loop): isso e um **ACHADO DE
    PRODUCAO** — o teste bulk esta fazendo o trabalho dele. Registre no relatorio
    final (secao "Achados de producao") e no ledger; a correcao e da
-   **platform-apex-generate** com aprovacao humana, fora deste loop. O teste bulk
-   **permanece** (falhando ou como bloqueio documentado) — remove-lo esconderia o bug.
+   **platform-apex-generate** com aprovacao humana, fora deste loop. O CENARIO bulk
+   permanece — mas **reestruturado/reduzido ate PASSAR** (teste falhando e
+   deploy-blocker em qualquer modo, Trava 5), com o tamanho reduzido e o motivo
+   documentados no relatorio. Remover o cenario por completo esconderia o bug.
 
 ### 2) Flow/automacao bloqueando o DML do setup
 
@@ -44,6 +52,13 @@ Ordem de ataque (do mais legitimo ao ultimo recurso):
 1. **Satisfaca a automacao**: leia o criterio do Flow/Validation e crie dados que
    passem por ele (muitas vezes e so um campo/relacionamento que falta). Delegue o
    padrao de dados a **platform-data-manage**.
+   **Atalho de ouro (aprendido em campo):** antes de decifrar o Flow na unha,
+   **procure classes de teste EXISTENTES** (no repo ou na org) que ja inserem esse
+   objeto — se uma classe de teste humana roda em producao fazendo `insert Case`,
+   ela E a receita pronta do dado que passa pela automacao. Minere o setup dela
+   (campos, relacionamentos, ordem) em vez de redescobrir por tentativa e erro.
+   (No benchmark real: o agente concluiu "Flow bloqueia DML" e foi para memoria,
+   enquanto a classe de teste humana da mesma org fazia 54 DMLs de Case havia anos.)
 2. **`System.runAs`** com usuario adequado, se o bloqueio for de perfil/permissao.
 3. **Teste em memoria (sem DML) — ULTIMO recurso, com regras**: vale para logica
    pura (metodo recebe objetos e preenche campos). Mas ele **nao cobre** triggers,

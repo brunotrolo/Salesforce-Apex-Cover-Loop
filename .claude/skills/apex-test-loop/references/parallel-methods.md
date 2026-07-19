@@ -22,7 +22,7 @@ mutavel nem dependem de ordem de execucao. Isso e o eixo certo para o `Workflow`
    `<Classe>Test.cls` ao mesmo tempo, e receita para sobrescrita/perda de trabalho —
    a mesma categoria de bug que o guard.mjs previne para o Write, so que agora por
    concorrencia, nao por trapaca.
-3. **As Regras de Ouro nao viajam sozinhas.** Um sub-agente de fan-out nao herda o
+3. **As Travas/regras do modo nao viajam sozinhas.** Um sub-agente de fan-out nao herda o
    contexto desta conversa/run. Se o prompt de cada agente nao incluir explicitamente
    as regras, corre-se o risco de cada um reinventar (ou nao evitar) os mesmos
    atalhos que o loop sequencial evita (mega-teste, try/catch de fachada, remover
@@ -33,7 +33,7 @@ mutavel nem dependem de ordem de execucao. Isso e o eixo certo para o `Workflow`
 ```
 Fase 1 — AUTORIA (paralelo, seguro):
   cada agente do fan-out recebe: (a) o nome do SEU metodo-alvo, (b) as linhas-alvo
-  exatas (uncoveredLines daquele metodo), (c) o texto completo das Regras de Ouro
+  exatas (uncoveredLines daquele metodo), (c) o texto completo das Travas (sempre) e das Regras de qualidade se o run estiver em `--rigoroso`
   desta skill (proibicoes nomeadas incluidas), (d) instrucao de DELEGAR o craft a
   platform-apex-test-generate, (e) instrucao de RETORNAR o codigo dos metodos de
   teste (texto), NAO escrever direto no arquivo compartilhado nem fazer deploy.
@@ -59,8 +59,12 @@ Fase 4 — CHECKPOINT (sequencial, um so passo):
   `platform-apex-test-generate`."
 - "NAO escreva no arquivo compartilhado. NAO rode deploy. Devolva o codigo dos
   metodos de teste como texto."
-- As proibicoes nomeadas: nunca remover cenario obrigatorio, nunca engolir excecao
-  com try/catch, nunca guardar assert com `isEmpty()`, nunca mega-teste — cada
-  cenario com seu proprio metodo/assert com mensagem especifica.
+- As **Travas** (valem sempre): nunca tocar producao, sem SeeAllData, sem IDs
+  hardcoded, todos os testes devem passar, nunca degradar teste que ja passa.
+- **O modo do run**: se `--rigoroso`, inclua tambem as Regras de qualidade (sem
+  try/catch de fachada, sem guarda `isEmpty()` em assert, assert de valor exato com
+  mensagem, 1 comportamento por metodo). Se MVP (padrao), diga explicitamente que
+  guardas de portabilidade sao permitidas e asserts sao opcionais — o objetivo e
+  executar as linhas-alvo e PASSAR.
 - Se o metodo tiver bloqueio de runtime (Flow, config ausente): reportar de volta
   ao orquestrador, nao decidir sozinho (`references/runtime-blockers.md`).

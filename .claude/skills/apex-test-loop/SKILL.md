@@ -3,8 +3,10 @@ name: apex-test-loop
 description: >-
   Orquestrador de AGENT LOOP para cobertura de teste Apex: dada UMA classe de
   producao, roda um ciclo fechado (deploy -> run test -> ler linhas nao cobertas
-  -> melhorar) ate atingir cobertura real e alta (meta padrao >= 99%), com travas
-  de seguranca, MODO GUIADO em portugues (para leigos) e MODO SCAFFOLD (dev/treino).
+  -> melhorar) ate o MINIMO VIAVEL DEPLOYAVEL: >= 99% de cobertura com TODOS os
+  testes passando e portaveis entre ambientes (modo --rigoroso opcional exige
+  asserts exaustivos), com travas de seguranca, MODO GUIADO em portugues (para
+  leigos) e MODO SCAFFOLD (dev/treino).
   O "craft" de teste (mocks, asserts, data factory, bulk, async, DML) e DELEGADO as
   skills oficiais do sf-skills importadas neste projeto. TRIGGER quando: o usuario
   pedir "cobrir/aumentar a cobertura da classe X ate ~99% em loop", "criar classe de
@@ -19,10 +21,37 @@ description: >-
 
 # Apex Test Loop — Orquestrador do loop de cobertura
 
-Objetivo: dada UMA classe de producao Apex, dirigir um **ciclo fechado** ate a classe
-de teste alcancar cobertura alta e **real** (meta padrao **>= 99%**): escrever/melhorar
-o teste → deploy → rodar com cobertura → ler as linhas nao cobertas → melhorar →
-repetir, ate a meta ou uma parada segura.
+Objetivo: dada UMA classe de producao Apex, dirigir um **ciclo fechado** ate o
+**MINIMO VIAVEL DEPLOYAVEL** — meta padrao **>= 99% de cobertura, todos os testes
+passando, portaveis entre ambientes**: escrever/melhorar o teste → deploy → rodar
+com cobertura → ler as linhas nao cobertas → melhorar → repetir, ate a meta ou uma
+parada segura.
+
+## 🎯 Objetivo de qualidade: MVP deployavel (PADRAO) vs `--rigoroso` (opt-in)
+
+A plataforma Salesforce exige para deploy: **cobertura + testes passando**. Ela NAO
+exige asserts — e cada assert de valor exato e um ponto potencial de quebra entre
+ambientes (config de org diverge). Por isso o padrao desta skill e o **MVP
+deployavel**:
+
+- **Teste que EXECUTA a linha e PASSA** vale mais que teste que verifica e quebra
+  em outra org. Asserts sao bem-vindos quando **baratos e estaveis** (smoke), nunca
+  obrigatorios por padrao.
+- **Guardas de config sao PERMITIDAS e recomendadas** (`if (!queues.isEmpty())`,
+  try/catch em torno de dependencia de org): isso e **portabilidade**, nao trapaca —
+  o teste precisa passar em QUALQUER sandbox do pipeline. Atencao ao efeito
+  colateral: excecao no MEIO do metodo corta a cobertura das linhas seguintes, entao
+  **dado real que evita a excecao ainda e a melhor tatica DE COBERTURA** (por
+  eficacia, nao por moral).
+- **Bulk 251+ e recomendado, nao mandatorio** — e um bulk que estoura CPU e um
+  deploy-blocker: reduza/divida ate PASSAR e registre o achado de producao.
+- **Menos asserts = menos falhas = menos iteracoes.** Grande parte do tempo perdido
+  em campo foi corrigindo asserts com expectativa errada — o MVP elimina essa classe
+  inteira de retrabalho.
+
+Se o usuario pedir **`--rigoroso`** (ou "testes com verificacao completa"), ai sim
+aplique o pacote exaustivo: assert de valor exato com mensagem em todo metodo, 1
+comportamento por metodo, bulk mandatorio (as regras marcadas como [rigoroso] abaixo).
 
 Esta skill e a **orquestracao**. O **craft** (como escrever um bom teste) vem das
 skills oficiais da Salesforce importadas aqui (veja Delegacao). Nosso valor: o loop,
@@ -131,8 +160,11 @@ Se o nome nao foi dado, pergunte qual classe cobrir.
    Custom Settings), diga ao usuario DESDE JA quais ramos podem ser inalcancaveis
    neste ambiente e qual e a meta pratica — 99% e o padrao, nao uma promessa cega
    (veja `references/runtime-blockers.md`, "Meta honesta").
-4. **Dados de teste**: procure `TestDataFactory`/`TestFactory`. Para criar/seedar
-   dados e o padrao de factory, delegue a **platform-data-manage**.
+4. **Dados de teste**: procure `TestDataFactory`/`TestFactory` — e tambem **classes
+   de teste EXISTENTES que ja inserem o objeto-alvo** (ex.: um `*_tst.cls` humano que
+   faz `insert Case`): elas sao a receita comprovada do dado que passa pelas
+   automacoes da org — minere o setup delas antes de inventar o seu. Para criar/
+   seedar dados e o padrao de factory, delegue a **platform-data-manage**.
 5. **Org alvo**: `sf config get target-org` / `sf org display`. Se `sf` nao estiver
    instalado/autenticado, pare e oriente.
 6. **Dependencias repo vs org**: a producao ja costuma estar **na org** com suas
@@ -150,8 +182,9 @@ Se o nome nao foi dado, pergunte qual classe cobrir.
 
 1. **Escrever/melhorar** `force-app/**/classes/<Classe>Test.cls` (+ `.cls-meta.xml`).
    Para o COMO (estrutura, mocks, asserts, bulk, async, DML), aplique o craft de
-   **platform-apex-test-generate**. Cada caminho vira um `@IsTest` com **assert real**
-   (veja Regras de Ouro).
+   **platform-apex-test-generate**. Cada caminho relevante vira um `@IsTest` que
+   **executa e passa** (no `--rigoroso`, tambem com assert real)
+   (veja Travas e, se `--rigoroso`, Regras de qualidade).
 
 2. **Deploy do TESTE + cobertura** com o script determinístico. Use **`--test-only`**
    (a producao ja esta na org — nao reenviar/sobrescrever):
@@ -180,22 +213,38 @@ Se o nome nao foi dado, pergunte qual classe cobrir.
      Sem sinal de scaffold, **pare e ofereca as opcoes**.
    - Falha na **classe de teste** → corrija o TESTE conforme `deployErrors` e volte a 2.
    - `failures` nao vazio → **investigue a CAUSA antes de "corrigir"**:
-     - Causa e o **teste** (assert errado, dado mal montado) → corrija o teste
-       (nunca remova assert) e volte a 2.
+     - Causa e o **teste** (assert errado, dado mal montado) → corrija o teste e
+       volte a 2. **No MVP**, um assert de expectativa errada/instavel PODE ser
+       afrouxado ou removido (asserts sao opcionais — nao gaste iteracoes consertando
+       verificacao que o modo nao exige); **no `--rigoroso`**, conserte o assert,
+       nunca o remova.
      - Causa e a **ORG em runtime** (Flow bloqueando DML, Entitlement/Queue/config
        ausente, governor limit — CPU/SOQL) → isso e um **bloqueio de runtime**, nao
-       um defeito do teste. Siga `references/runtime-blockers.md` (satisfazer a
-       automacao, criar o dado real, dividir o teste, ou PARAR e perguntar) — os
-       atalhos de enfraquecer o teste sao proibidos (Regra de Ouro 5).
+       um defeito do teste. Siga `references/runtime-blockers.md`: primeiro minere
+       testes existentes/dado real (melhor tatica de COBERTURA), e no MVP guardas de
+       config sao aceitaveis como fallback de portabilidade; no `--rigoroso`,
+       enfraquecer o teste e proibido (Regras de qualidade).
+     - **Circuit-breaker de investigacao (aprendido em campo):** se a causa de UMA
+       falha nao ficar clara em **2-3 passos** de leitura/investigacao solta, PARE de
+       cavar — prefira **um unico deploy com diagnostico dirigido** (assert/debug
+       temporario NO TESTE que revele o dado real) e siga trabalhando o resto do lote
+       enquanto isso; se nem assim a causa fechar, registre a falha como pendencia no
+       checkpoint e reporte ao usuario no fim da iteracao, em vez de queimar dezenas
+       de chamadas numa falha so. (Uma falha pontual NUNCA deve travar o avanco das
+       demais linhas-alvo.)
    - Passou → veja `coveredPercent` e `uncoveredLines`.
 
 4. **Decidir e SALVAR o checkpoint**:
-   - `coveredPercent >= 99` (ou a meta re-pactuada) **e** todo metodo com assert
-     real → **concluir**.
-   - Senão → leia a classe de producao **nas `uncoveredLines`**, entenda o cenario
-     que falta (ramo `else`? `catch`? item de `switch`? loop vazio/cheio?), adicione
-     **um metodo de teste** para aquele caminho (aplicando o craft de
-     platform-apex-test-generate) e volte a 2.
+   - `coveredPercent >= 99` (ou a meta re-pactuada) **e** todos os testes passando
+     → **concluir**. (No `--rigoroso`, exige tambem assert real em todo metodo.)
+   - Senão → leia a classe de producao **nas `uncoveredLines`** (pelos intervalos do
+     inventario de metodos — nao o arquivo inteiro), entenda os cenarios que faltam
+     (ramo `else`? `catch`? item de `switch`? loop vazio/cheio?) e adicione **testes
+     para TODAS as linhas-alvo conhecidas — EM LOTE, num unico ciclo** (aplicando o
+     craft de platform-apex-test-generate), e volte a 2. **Nunca um teste por
+     iteracao**: o custo dominante do loop e o ciclo deploy+teste (minutos), nao a
+     autoria — cada deploy deve carregar o MAXIMO de trabalho novo (corrigir todas
+     as falhas conhecidas + cobrir todas as linhas-alvo mapeadas de uma vez).
    - **Regra do platô**: cobertura parada por **2 iteracoes seguidas** enquanto o
      numero de testes cresce = os testes novos estao cobrindo linhas ja cobertas.
      PARE de escrever testes e diagnostique: compare `uncoveredLines` com a iteracao
@@ -211,34 +260,73 @@ Se o nome nao foi dado, pergunte qual classe cobrir.
      historico, linhas restantes, feito, proximo passo) — e parte do passo, nao um
      extra. E isso que permite retomar o loop de onde parou.
 
-## ⛔ Regras de Ouro (inegociaveis — anti-cheat)
+## ⚡ Disciplina de execucao (assertividade, tempo e tokens)
 
-Cobertura sem verificacao e execucao de codigo, nao teste. Voce **NAO PODE**:
+Aprendido em campo: o loop estava correto mas lento — pedia aprovacao demais, fazia
+pouco por iteracao e desperdicava contexto. Regras de execucao:
 
-1. **Alterar a classe de producao para inflar cobertura** (formatacao, linhas, chaves).
-2. **Entregar teste sem assert.** Todo `@IsTest` valida comportamento com a classe
-   `Assert` (nunca `System.assert*` legado); asserts de **valor exato** calculado do
-   setup (nunca range/aproximado quando o valor e deterministico); **mensagem
-   obrigatoria** no assert; valide efeito colateral via SOQL.
-3. **Atalhos proibidos**: sem `@IsTest(SeeAllData=true)`, sem IDs hardcoded, sem
-   depender de dados da org.
-4. **Fingir cobertura impossivel** — documente linhas inalcancaveis em vez de forcar.
-5. **"Resolver" uma falha enfraquecendo o teste** (aprendido em campo — CaseHandler):
-   - **nunca remova/reduza um cenario obrigatorio** (ex.: apagar o teste bulk porque
-     o CPU estourou);
-   - **nunca engula excecao com try/catch** nem guarde asserts com `if (!isEmpty())`
-     so para o teste passar;
-   - **nunca crie "mega-teste"** com dezenas de combinacoes num metodo so (1
-     comportamento por metodo — helper privado para setup e ok, assert individual).
-   Falha causada pela ORG (Flow, config ausente, governor limit) tem tratamento
-   proprio: `references/runtime-blockers.md`. Se voce se pegar tomando um desses
-   atalhos, PARE, desfaça e registre no ledger imediatamente.
+**1. Autonomia por padrao — NAO pergunte, decida e reporte.** As politicas desta
+skill ja decidem quase tudo; se uma regra escrita cobre o caso, **aja** e registre a
+decisao no checkpoint. Os UNICOS pontos onde se pergunta ao usuario sao os nomeados:
+(a) editar/sobrescrever producao (guard `ask`); (b) ativar scaffold; (c) re-pactuar a
+meta/teto de ambiente; (d) estado ambiguo (ex.: checkpoints duplicados); (e) parada
+de seguranca/bloqueio genuino sem saida nas politicas. **Todo o resto — qual teste
+escrever, como corrigir uma falha de teste, que dado criar, ordem de ataque — e
+decisao SUA**, ja governada pelas Travas e pelo modo de qualidade vigente.
+Perguntar o que a skill ja
+responde e desperdicio do tempo do usuario.
 
-Boas praticas: `@TestSetup`; `Test.startTest()/stopTest()`; `System.runAs` para
-permissao; **bulk 251+ registros** (cruza a fronteira de batch de 200 da trigger) para
-triggers/handlers/`@InvocableMethod`; **um comportamento por metodo**. O detalhamento
-desses padroes vive nas skills oficiais (**platform-apex-test-generate** /
-**platform-apex-test-run**).
+**2. Lote maximo por deploy.** O ciclo deploy+teste custa minutos; a autoria custa
+segundos. Enfileire TUDO que se sabe fazer (corrigir todas as falhas + cobrir todas
+as linhas-alvo de todos os metodos mapeados) e gaste **um** deploy por iteracao.
+Meca o exito em "linhas-alvo eliminadas por deploy", nao em "iteracoes rodadas".
+
+**3. Dieta de contexto.**
+- Leia a producao **por intervalos do inventario de metodos** (Passo 0), nunca o
+  arquivo inteiro repetidamente.
+- Saida do `apex-coverage.mjs` SEMPRE para arquivo (`> cov-N.json`), nunca truncada
+  por `tail`/`head` (detalhe em `references/sf-cli-and-coverage.md`) — perder o JSON
+  custa um ciclo inteiro de re-deploy.
+- O que ja esta no checkpoint nao se rederiva: leia `state/<Classe>.md` em vez de
+  reinvestigar o que uma iteracao anterior ja concluiu.
+- Durante o loop, reporte ao usuario em formato **curto** (tabela de progresso +
+  proximo passo); prosa longa so no encerramento.
+
+## ⛔ Travas (valem SEMPRE, em qualquer modo — seguranca e portabilidade)
+
+1. **Nunca alterar a classe de producao** — nem para inflar cobertura (formatacao,
+   linhas, chaves), nem para "ajudar" o teste. Producao e intocavel (guard impoe).
+2. **Sem `@IsTest(SeeAllData=true)` e sem IDs hardcoded** — isso QUEBRA o proprio
+   objetivo do MVP: o teste precisa passar em qualquer ambiente do pipeline, e
+   dados/IDs de uma org especifica nao existem na proxima.
+3. **Nunca fingir cobertura impossivel** — linhas inalcancaveis sao documentadas
+   (Limitacoes de cobertura), nunca "resolvidas" com truque.
+4. **Nunca remover/degradar um teste que ja PASSA** para "simplificar" — trabalho
+   pago nao se joga fora.
+5. **Todos os testes DEVEM passar** — teste falhando e deploy-blocker; nao existe
+   "deixar falhando para depois" no artefato final.
+
+## 📐 Regras de qualidade [rigoroso] (so quando o usuario pedir `--rigoroso`)
+
+Cobertura sem verificacao e execucao de codigo, nao teste — quando o usuario QUER
+verificacao. No modo rigoroso, adicionalmente:
+
+- **Todo `@IsTest` com assert** da classe `Assert` moderna, **valor exato** calculado
+  do setup (nunca range), **mensagem obrigatoria**; valide efeito colateral via SOQL.
+- **1 comportamento por metodo** (sem mega-teste; data-driven so com assert
+  individual por combinacao e mensagem que identifique qual combo falhou).
+- **Bulk 251+ mandatorio** para triggers/handlers/`@InvocableMethod`.
+- **Nunca engula excecao com try/catch nem guarde assert com `isEmpty()`** — no
+  rigoroso, o dado real e obrigatorio, nao opcional.
+
+No modo MVP (padrao), esses itens viram **taticas recomendadas quando baratas**, nao
+bloqueios: guardas de config e try/catch de portabilidade sao permitidos (veja
+"Objetivo de qualidade" acima), lembrando que excecao no meio do metodo corta
+cobertura — dado real costuma ser a MELHOR tatica de cobertura mesmo no MVP.
+
+Boas praticas em ambos os modos: `@TestSetup`; `Test.startTest()/stopTest()`;
+`System.runAs` para permissao. O detalhamento vive nas skills oficiais
+(**platform-apex-test-generate** / **platform-apex-test-run**).
 
 ## Condicao de parada e encerramento
 
@@ -273,15 +361,16 @@ avise o usuario na mesma resposta.
 Para cada friccao (max ~3): confira `RECOMMENDATIONS.md` (nao duplicar) e **anexe**
 uma entrada `R-XXXX` com status `🟡 Proposta` (gatilho real, problema, mudanca
 acionavel). Avise o usuario: *"registrei N recomendacao(oes); peca para eu revisar
-quando quiser"*. Escrever neste `.md` e permitido. **Melhoria nunca afrouxa as Regras
-de Ouro nem as travas.** Ao **processar**: decida `🟢 Aprovada`/`⚪ Reprovada`/`✅ Aplicada`
+quando quiser"*. Escrever neste `.md` e permitido. **Melhoria nunca afrouxa as
+Travas nem o modo de qualidade vigente.** Ao **processar**: decida `🟢 Aprovada`/`⚪ Reprovada`/`✅ Aplicada`
 e atualize o status com o PR.
 
 ## Modo guiado (passo a passo para leigos)
 
 Quando ativado, siga `references/guided-mode.md`. Em resumo: uma etapa por vez em
 portugues simples; **pausas de confirmacao** antes do primeiro deploy; ensine os
-conceitos; mostre o progresso (`72% -> 88% -> 99%`); as Regras de Ouro continuam valendo.
+conceitos; mostre o progresso (`72% -> 88% -> 99%`); as Travas continuam valendo
+(e as Regras de qualidade, se o modo for `--rigoroso`).
 
 ## Referencias
 

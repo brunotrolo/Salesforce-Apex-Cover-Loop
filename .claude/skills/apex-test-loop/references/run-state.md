@@ -17,6 +17,21 @@ compactacao de contexto, **sem recomecar do zero**.
 - Escrever `.md` e liberado pelo guard (so `.cls`/`.trigger` de producao e protegido).
 - O arquivo e legivel por humanos — o usuario pode abrir e entender o progresso.
 
+### UM arquivo canonico por classe — copias sao PROIBIDAS (aprendido em campo)
+
+Num run real existiam `CaseHandler.md` E `CaseHandler-Copia.md` com numeros
+completamente divergentes (37% vs 60%, iteracao 7 vs 1) — a sessao teve que REMEDIR
+a cobertura do zero so para descobrir qual era o verdadeiro, e o contador de parada
+de seguranca ficou sem base. Regras:
+
+- **Nunca crie** `-Copia`, `-backup`, `-old` ou qualquer arquivo irmao do checkpoint.
+  Precisa "guardar a versao anterior antes de mudar"? Use `git`, ou uma secao
+  `## Historico` DENTRO do proprio arquivo. O canonico e `state/<Classe>.md`, unico.
+- **No Passo 0**, se houver mais de um arquivo casando com `state/<Classe>*.md`:
+  PARE e pergunte ao usuario qual e o valido (ponto nomeado de decisao humana) —
+  nunca escolha sozinho nem tente "mesclar" numeros divergentes por conta propria.
+  Apos a resposta, delete o invalido e siga com um so.
+
 ## Quando ler e escrever (o ciclo)
 
 1. **Passo 0 (antes de tudo):** verifique se `state/<Classe>.md` existe.
