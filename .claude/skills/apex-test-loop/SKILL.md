@@ -101,25 +101,47 @@ Se o nome nao foi dado, pergunte qual classe cobrir.
 
 1. **Localizar a classe**: `**/classes/<Classe>.cls` em `force-app` (ou nos
    `packageDirectories` do `sfdx-project.json`). Leia a versao REAL do repo.
-2. **Mapear o que cobrir**: metodos, ramos (`if/else`, ternario, `switch`), loops,
-   `try/catch`, DML, SOQL/SOSL, chamadas externas, `@AuraEnabled`/`@InvocableMethod`,
-   sharing, excecoes custom. **Detecte callout/assincrono** (`Http`, WSDL, `@future`,
-   Queueable, Batchable, Schedulable, Platform Events) — para o COMO, aplique
-   **platform-apex-test-generate** (mocks/async).
+
+2. **Inventario MECANICO de metodos (obrigatorio, antes de escrever qualquer teste)**.
+   "Ler e entender" a classe nao basta em arquivos grandes — e assim que se perde
+   metodo (aconteceu em campo: uma classe de 2790 linhas tinha 31 metodos, e a leitura
+   inicial so notou 5; a sessao passou iteracoes inteiras testando so um sexto da
+   classe achando que era o todo). Antes de mapear cenarios, rode um grep de
+   assinaturas para ter a lista **completa e definitiva**:
+   ```
+   grep -n "^\s*(public|private|global|protected).*\b(void|List|Map|Set|Boolean|String|Id|Integer)\b.*\(.*\)\s*\{?\s*$"
+   ```
+   (ajuste os tipos de retorno conforme a classe). Monte uma tabela **metodo → linha
+   inicial/final** — esse mapa e a fonte de verdade para o resto do run: rastreie
+   cobertura POR METODO (nao so o agregado da classe), e cada teste que voce escrever
+   deve saber a qual metodo pertence.
+   **Classe grande (aprox. >10-15 metodos, ou muitas linhas)**: com o inventario em
+   maos, avalie DESDE JA se cabe a estrategia de decomposicao por metodo (fan-out —
+   veja `references/parallel-methods.md`) em vez de descobrir isso tarde, no meio
+   do run, como aconteceu em campo.
+
+3. **Mapear o que cobrir por metodo** (usando o inventario acima): ramos (`if/else`,
+   ternario, `switch`), loops, `try/catch`, DML, SOQL/SOSL, chamadas externas,
+   `@AuraEnabled`/`@InvocableMethod`, sharing, excecoes custom. **Detecte
+   callout/assincrono** (`Http`, WSDL, `@future`, Queueable, Batchable, Schedulable,
+   Platform Events) — para o COMO, aplique **platform-apex-test-generate**
+   (mocks/async).
    **Avalie a alcancabilidade e re-pactue a meta se preciso**: se a classe depende
    fortemente de configuracao de org (muitos record types, Entitlements, Queues,
    Custom Settings), diga ao usuario DESDE JA quais ramos podem ser inalcancaveis
    neste ambiente e qual e a meta pratica — 99% e o padrao, nao uma promessa cega
    (veja `references/runtime-blockers.md`, "Meta honesta").
-3. **Dados de teste**: procure `TestDataFactory`/`TestFactory`. Para criar/seedar
+4. **Dados de teste**: procure `TestDataFactory`/`TestFactory`. Para criar/seedar
    dados e o padrao de factory, delegue a **platform-data-manage**.
-4. **Org alvo**: `sf config get target-org` / `sf org display`. Se `sf` nao estiver
+5. **Org alvo**: `sf config get target-org` / `sf org display`. Se `sf` nao estiver
    instalado/autenticado, pare e oriente.
-5. **Dependencias repo vs org**: a producao ja costuma estar **na org** com suas
+6. **Dependencias repo vs org**: a producao ja costuma estar **na org** com suas
    dependencias. O loop deploya **so o teste** (`--test-only`). Traga algo com
    `sf project retrieve start` so se faltar de fato na org.
-6. **Baseline**: se `<Classe>Test.cls` ja existe, meca a cobertura atual **sem alterar**
-   e **melhore** o existente (preserve os testes bons).
+7. **Baseline**: se `<Classe>Test.cls` ja existe, meca a cobertura atual **sem alterar**
+   e **melhore** o existente (preserve os testes bons). Se o inventario de metodos
+   (item 2) revelar metodos sem nenhum teste correspondente, isso e sinal de que a
+   classe de teste existente tambem so cobria parte da classe.
 
 > **Triggers**: para cobrir uma trigger, faca DML no objeto dentro do teste; a
 > cobertura dela aparece em `otherClassesTouched` do script.
@@ -264,6 +286,9 @@ conceitos; mostre o progresso (`72% -> 88% -> 99%`); as Regras de Ouro continuam
 ## Referencias
 
 **Nossas (unicas desta camada):**
+- `references/parallel-methods.md` — decomposicao por metodo (fan-out) para classes
+  grandes: quando usar, os 3 riscos de concorrencia e a estrutura segura (autoria
+  paralela, merge/deploy/checkpoint sequenciais).
 - `references/runtime-blockers.md` — bloqueios de RUNTIME (Flow bloqueando DML,
   config de org ausente, governor limits): o que nunca fazer, o que fazer por tipo,
   regra do platô e meta honesta.

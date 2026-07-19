@@ -255,4 +255,40 @@ existe tanto no repositorio-casa quanto na copia dentro do seu projeto Salesforc
   a este framework quando o diagnostico aponta bloqueio de ambiente. `run-state.md`
   ganha campo pra registrar a decisao no checkpoint, pra nao re-perguntar ao retomar.
 
-<!-- A skill anexa novas propostas ABAIXO desta linha, como R-0020, R-0021... -->
+### R-0020 — Inventario mecanico de metodos no Passo 0 (nao so "ler e entender")
+- **Status:** ✅ Aplicada (PR #18)
+- **Data:** 2026-07-19
+- **Gatilho:** No CaseHandler (2790 linhas), a leitura inicial da classe so notou 5
+  metodos; a sessao passou iteracoes inteiras testando so um sexto da classe achando
+  que era o todo. Os 31 metodos reais so foram descobertos por acidente, ao preparar
+  um grep de assinaturas para o fan-out. O usuario perguntou: "a primeira atividade
+  nao deveria ser o levantamento de todos os metodos?" — e a resposta e sim.
+- **Problema:** O Passo 0 pedia "mapear o que cobrir" de forma generica (ler e
+  entender), sem exigir um levantamento MECANICO e exaustivo antes de comecar a
+  escrever testes. Em classes grandes, leitura humana/LLM subestima a extensao real.
+- **Melhoria:** Passo 0 ganha um item 2 obrigatorio: grep de assinaturas de metodo
+  ANTES de mapear cenarios, produzindo uma tabela metodo→linhas que vira a fonte de
+  verdade do run (cobertura rastreada por metodo, nao so agregado da classe). Classe
+  grande (>10-15 metodos) avalia a estrategia de decomposicao por metodo DESDE JA
+  (nao no meio do run, por acidente).
+
+### R-0021 — Decomposicao por metodo (fan-out) para classes grandes
+- **Status:** ✅ Aplicada (PR #18)
+- **Data:** 2026-07-19
+- **Gatilho:** Com 31 metodos independentes e ~1064 linhas nao cobertas, a sessao
+  planejou usar Workflow (fan-out de sub-agentes) — mas nossa skill so previa loop
+  sequencial (R-0013 tinha descartado sub-agentes explicitamente, sob a premissa de
+  que tudo era dependente; nao e o caso quando os metodos sao independentes).
+- **Problema:** Sem uma estrutura definida, fan-out real corre 3 riscos: deploy
+  concorrente colidindo na org, escrita concorrente no mesmo arquivo de teste
+  (perda de trabalho), e as Regras de Ouro nao viajando com cada sub-agente (cada
+  um podendo reinventar os atalhos que o loop sequencial evita).
+- **Melhoria:** Nova `references/parallel-methods.md`: quando usar (metodos
+  independentes, inventario grande), os 3 riscos nomeados, e a estrutura segura —
+  **autoria em paralelo** (cada agente so retorna codigo, nao escreve nem deploya),
+  **merge/deploy/checkpoint sequenciais** (um passo so, feito pelo orquestrador).
+  Prompt minimo obrigatorio por agente do fan-out especificado (linhas-alvo,
+  delegacao ao craft oficial, proibicoes nomeadas, reportar bloqueio de runtime
+  em vez de decidir sozinho).
+
+<!-- A skill anexa novas propostas ABAIXO desta linha, como R-0022, R-0023... -->

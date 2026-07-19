@@ -307,6 +307,7 @@ Na pratica:
     references/
       run-state.md                  # memoria de estado: checkpoint por classe (retomar o loop)
       runtime-blockers.md           # falha por causa da ORG (Flow/config/limites): o que (nao) fazer
+      parallel-methods.md           # classes grandes: fan-out por metodo com autoria paralela/deploy sequencial
       guided-mode.md                # roteiro do modo guiado (para leigos, PT)
       scaffolding-dependencies.md   # orquestracao do scaffold dev (__c/__mdt/classes)
       sf-cli-and-coverage.md        # contrato do apex-coverage.mjs + comandos sf de fallback
