@@ -173,4 +173,17 @@ existe tanto no repositorio-casa quanto na copia dentro do seu projeto Salesforc
   por ora — o loop e sequencial (cada iteracao depende da cobertura anterior); seria
   complexidade sem ganho.
 
-<!-- A skill anexa novas propostas ABAIXO desta linha, como R-0014, R-0015... -->
+### R-0014 — Modo bypassPermissions (zero prompts) mantendo deny + guard
+- **Status:** ✅ Aplicada (PR #15)
+- **Data:** 2026-07-19
+- **Gatilho:** Usuario incomodado com aprovacoes repetidas de Bash/PowerShell mesmo
+  apos a allowlist ampla (R-0008); pediu "permissao FODA que nao precise aprovar nada".
+- **Problema:** `allow: ["Bash(*)", "PowerShell(*)", ...]` ainda deixa prompts para
+  outras ferramentas/casos fora do escopo coberto.
+- **Melhoria:** `permissions.defaultMode: "bypassPermissions"` no settings.json.
+  Verificado contra a doc oficial: `deny` e o hook `PreToolUse` (`guard.mjs`)
+  **continuam validos** em bypass ("hook decisions don't bypass permission rules").
+  README documenta o aviso unico de aceitacao, a limitacao na Web (ignorado
+  silenciosamente) e o risco de `disableBypassPermissionsMode` gerenciado.
+
+<!-- A skill anexa novas propostas ABAIXO desta linha, como R-0015, R-0016... -->

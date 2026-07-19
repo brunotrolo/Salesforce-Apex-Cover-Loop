@@ -171,15 +171,18 @@ AccountService"**, **"sou iniciante"**. No modo guiado a qualidade nao muda — 
 jeito de conversar (ele ensina enquanto faz). Quando ja tiver pratica, use sem o
 `--guiado` para rodar o ciclo inteiro de uma vez.
 
-### Rodar sem ficar aprovando a cada comando
+### Rodar sem ficar aprovando NADA (modo bypass, ja ativado)
 
-Por padrao, o Claude Code pede confirmacao antes de rodar comandos que mudam algo
-fora do chat. Para o loop rodar liso, o `.claude/settings.json` deste repositorio
-**libera geral** o trabalho normal — **mantendo** as travas de seguranca ativas:
+Por padrao, o Claude Code pede confirmacao antes de rodar comandos ou editar
+arquivos. Isso incomoda num loop que roda dezenas de vezes. Por isso o
+`.claude/settings.json` deste repositorio ja vem com **`bypassPermissions`**: zero
+prompts pra qualquer ferramenta (Bash, PowerShell, Write, Edit, leitura, etc.) —
+**mantendo as travas de seguranca ativas**:
 
 ```json
 {
   "permissions": {
+    "defaultMode": "bypassPermissions",
     "allow": ["Bash(*)", "PowerShell(*)", "Write", "Edit"],
     "deny": [
       "Bash(sf project delete *)", "Bash(sf org delete *)", "Bash(sf data delete *)",
@@ -190,21 +193,35 @@ fora do chat. Para o loop rodar liso, o `.claude/settings.json` deste repositori
 }
 ```
 
-Por que isso e seguro (confirmado na doc oficial do Claude Code):
-- **`deny` sempre vence o `allow`** — os comandos destrutivos seguem bloqueados,
-  mesmo com o `allow` amplo.
-- **O hook `PreToolUse` roda ANTES do `allow`** e pode bloquear — entao o guarda que
-  impede apagar/sobrescrever a producao **continua valendo**, mesmo liberando geral.
+Por que isso e seguro mesmo no bypass (confirmado na doc oficial do Claude Code):
+- **`deny` continua valendo em `bypassPermissions`** — comandos destrutivos seguem
+  bloqueados, mesmo com zero prompts para o resto.
+- **O hook `PreToolUse` (`guard.mjs`) tambem continua valendo** — "hook decisions
+  don't bypass permission rules... Claude Code evaluates deny and ask rules
+  regardless of what a PreToolUse hook returns". O guarda que impede
+  apagar/sobrescrever a producao **funciona igual**, com ou sem bypass.
 
-Resultado: **sem prompts** no trabalho normal (inclusive no Windows/PowerShell, que
-tinha um bug de `/` vs `\` nas regras escopadas); o que e destrutivo continua barrado.
+**O que muda de verdade:** nenhum prompt de aprovacao pra nada — nem Bash/PowerShell,
+nem escrever/editar arquivo, nem ler. So continuam parando: os `deny` acima, o guard,
+e alguns *circuit-breakers* do proprio Claude Code (ex.: `rm -rf /`).
 
-- Arquivo **versionado**. Prefere algo so seu? Ponha o mesmo conteudo em
-  `.claude/settings.local.json` (nao versionado).
-- Quer voltar a pedir aprovacao? Troque `Bash(*)`/`PowerShell(*)` pelas regras
-  escopadas (so os comandos da skill), ou rode `/permissions` no Claude Code.
-- Quer **zero** prompts de tudo (nao so shell)? `"defaultMode": "bypassPermissions"`
-  tambem preserva `deny` + hook — porem e mais amplo; use so em ambiente confiavel.
+**Avisos honestos:**
+- **Na primeira sessao**, o Claude Code mostra **um aviso unico** pedindo para voce
+  aceitar a responsabilidade por acoes sem checagem de permissao — e uma tela que so
+  aparece uma vez (fica salva na sua conta), nao da pra pular por configuracao.
+- **So funciona no Claude Code local (CLI).** Na sessao Web (claude.ai/code), este
+  campo e **ignorado silenciosamente** — a sessao la sempre pede aprovacao normal
+  (nao ha como ativar bypass na Web).
+- Se o seu administrador tiver bloqueado bypass via configuracao gerenciada
+  (`disableBypassPermissionsMode`), este campo tambem e ignorado — o Claude Code
+  volta ao modo normal sem avisar por que.
+
+- Arquivo **versionado**. Prefere algo so seu (nao querer bypass pra sempre nesse
+  projeto)? Remova a linha `defaultMode` daqui e ponha em
+  `.claude/settings.local.json` (nao versionado) so quando quiser usar.
+- Quer voltar a pedir aprovacao (mais cauteloso)? Apague a linha `"defaultMode":
+  "bypassPermissions"`, ou rode `/permissions` no Claude Code para trocar o modo
+  na hora.
 
 ### Travas de seguranca (a skill NUNCA apaga a classe de producao)
 
