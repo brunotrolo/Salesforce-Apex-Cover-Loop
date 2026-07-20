@@ -44,6 +44,14 @@ Voce informa uma classe → o Claude entra num ciclo fechado ate atingir a meta 
 - Node 18+
 - Projeto SFDX com `force-app/*/classes/`
 
+> **Opcional — rodar com [OpenCode](https://opencode.ai) + modelo local grátis** (via [Ollama](https://ollama.com), sem custo de API):
+> ```bash
+> npm install -g opencode-ai
+> opencode providers add ollama --url http://localhost:11434
+> opencode --local http://localhost:11434 --model qwen2.5-coder:14b
+> ```
+> A skill funciona igual no OpenCode — ele lê o mesmo `.claude/skills/`.
+
 ### 2. Instale — UM comando
 
 Rode **de dentro da pasta do seu projeto** (onde esta `force-app`):
