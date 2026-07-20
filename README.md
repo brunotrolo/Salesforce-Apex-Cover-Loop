@@ -50,7 +50,7 @@ Voce informa uma classe → o Claude entra num ciclo fechado ate atingir a meta 
 > opencode providers add ollama --url http://localhost:11434
 > opencode --local http://localhost:11434 --model qwen2.5-coder:14b
 > ```
-> A skill funciona igual no OpenCode — ele lê o mesmo `.claude/skills/`.
+> A skill funciona igual no OpenCode — ele lê o mesmo `.claude/skills/`. Não tem Ollama/OpenCode ainda? **[Passo a passo do zero em Informações](./INFORMACOES.md#rodar-no-opencode-do-zero-gr%C3%A1tis-local)**.
 
 ### 2. Instale — UM comando
 
