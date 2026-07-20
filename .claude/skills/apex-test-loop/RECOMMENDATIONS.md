@@ -28,11 +28,13 @@ existe tanto no repositorio-casa quanto na copia dentro do seu projeto Salesforc
   termos acionaveis (qual arquivo/regra/passo). Nada de generico.
 - **ID sequencial**: use o proximo `R-XXXX` livre.
 - **Poucos e bons**: no maximo ~3 por run; so o que teve friccao de verdade.
-- **Antes de "commitar na main", faca o PREFLIGHT de git** (`git rev-parse
-  --is-inside-work-tree`): se a pasta foi BAIXADA (zip) e nao clonada, nao ha `.git` e
-  o push falha silenciosamente — avise o usuario e aponte a receita em
-  `references/contribution-guidelines.md` ("Se o `git push` falhar"). Nunca diga que
-  registrou no GitHub sem o push ter dado certo.
+- **LOCAL, sem `git push`**: 🚫 nunca rode `git add/commit/push` de recomendacoes.
+  Este arquivo e uma **copia** dentro do projeto do dev, sem acesso de escrita ao
+  repo-casa; se varios devs empurrassem, um sobrescreveria o outro. Apenas edite o
+  `.md` e avise o usuario que a recomendacao ficou **local** e deve ser enviada ao
+  mantenedor quando ele abrir a coleta (a consolidacao no repo e central e manual —
+  ver `references/contribution-guidelines.md` → "papel do mantenedor"). Nunca diga que
+  "registrou no GitHub".
 
 ---
 

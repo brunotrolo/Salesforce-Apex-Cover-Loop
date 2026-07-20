@@ -320,7 +320,7 @@ try {
 
 ---
 
-## Seção 4: Como Contribuir (Instruções pro Agente)
+## Seção 4: Como Contribuir (Instruções pro Agente) — LOCAL, sem push
 
 Quando rodar a skill `apex-test-loop` em uma classe:
 
@@ -333,12 +333,11 @@ Quando rodar a skill `apex-test-loop` em uma classe:
    **Estratégia:** <solução genérica>
    **Recomendação:** <quando e como aplicar>
    ```
-3. **Commit direto:**
-   ```bash
-   git add .claude/skills/apex-test-loop/references/apex-test-loop-recommendations.md
-   git commit -m "docs: padrão P-XXXX — <titulo>"
-   git push origin main
-   ```
+3. **Salve local e AVISE — NÃO faça `git push`.** 🚫 Nunca rode `git add/commit/push`
+   de recomendações: esta é uma **cópia** da skill no projeto do dev, sem acesso de
+   escrita ao repo-casa. Se 10 devs empurrassem, um sobrescreveria o outro. Só edite o
+   `.md` e avise o usuário que o arquivo é **local** e deve ser enviado ao mantenedor
+   quando ele abrir a coleta (ver `contribution-guidelines.md` → "papel do mantenedor").
 
 4. **Nunca mencione classe específica** — escreva como se ensinando um padrão genérico.
 
@@ -348,8 +347,8 @@ Quando rodar a skill `apex-test-loop` em uma classe:
 
 | Quando | Arquivo | Por quê |
 |--------|---------|---------|
-| Contribuir padrão agnóstico | `.claude/skills/apex-test-loop/references/apex-test-loop-recommendations.md` | Versionado, acessível, genérico |
-| Recomendação de skill | `.claude/skills/apex-test-loop/RECOMMENDATIONS.md` | Histórico da evolução da skill |
+| Contribuir padrão agnóstico | `.claude/skills/apex-test-loop/references/apex-test-loop-recommendations.md` | **Local** no projeto do dev; curadoria central pelo mantenedor |
+| Recomendação de skill | `.claude/skills/apex-test-loop/RECOMMENDATIONS.md` | **Local**; histórico da evolução da skill |
 | Estado de UM run | `.apex-test-loop/state/<Classe>.md` | Rastreabilidade da iteração |
 | Guia de uso | `.claude/skills/apex-test-loop/SKILL.md` | Instruções executáveis |
 

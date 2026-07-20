@@ -44,60 +44,41 @@ em outra org.
 checkpoint qual ambiente causa divergência.
 ```
 
-## Como Contribuir (Workflow)
+## Como Contribuir (Workflow) — LOCAL, sem `git push`
 
-0. **PREFLIGHT — confirme que dá para commitar (evita perder a contribuição):**
-   ```bash
-   git rev-parse --is-inside-work-tree 2>/dev/null && git remote -v
-   ```
-   - **Deu `true` + mostrou um `origin`** → é um clone com remote; siga para o passo 1.
-   - **Deu `fatal: not a git repository`** → esta pasta foi BAIXADA (zip), não clonada:
-     não tem `.git`, então NENHUM commit/push funciona. **Pare e avise o usuário**
-     com a receita de correção abaixo — NÃO tente `git init` numa pasta baixada (cria
-     um repo órfão que não empurra pra main). A recomendação foi salva em disco, mas
-     **só entra no GitHub depois que a pasta virar um clone.**
+> 🚫 **A skill NUNCA faz `git add/commit/push` de recomendações.** Cada dev roda uma
+> **cópia** do `.claude/` dentro do próprio projeto — não é um clone do repo-casa, e
+> ninguém tem acesso de escrita a ele. Se 10 pessoas empurrassem pra `main`, uma
+> sobrescreveria a recomendação da outra. Por isso **tudo fica LOCAL no disco do dev**;
+> a consolidação no repo é **central e manual**, feita pelo mantenedor.
 
 1. **Encontre o próximo ID livre** em `references/apex-test-loop-recommendations.md`
-   (exemplo: se P-0010 existe, use P-0011)
+   (P-XXXX) — se `P-0010` existe, use `P-0011`.
 
-2. **Escreva a recomendação** no formato acima (agnóstico, sem nome de classe)
+2. **Escreva a recomendação** no formato acima (agnóstico, sem nome de classe) e
+   **salve o arquivo** (é só editar o `.md` — permitido). **NÃO** rode `git add`,
+   `git commit` nem `git push`.
 
-3. **Commit direto no GitHub (main):**
-   ```bash
-   git add .claude/skills/apex-test-loop/references/apex-test-loop-recommendations.md
-   git commit -m "docs: padrão P-XXXX — <titulo>"
-   git push origin main   # se falhar por rede, tente de novo; se falhar por auth, veja abaixo
-   ```
+3. **Notifique o usuário deixando claro que é LOCAL:**
+   > "Registrei 1 padrão (P-XXXX — <Titulo>) no arquivo **local**
+   > `references/apex-test-loop-recommendations.md`, dentro do seu projeto. Ele fica
+   > aqui no seu disco — quando o mantenedor abrir a coleta, é só enviar este arquivo."
 
-4. **Notifique o usuário:**
-   > "Registrei 1 padrão (P-XXXX — <Titulo>) em references/ baseado neste run. 
-   > Serve como referência para próximas classes."
+## Como as melhorias chegam ao repo-casa (papel do mantenedor)
 
-## ⚠️ Se o `git push` falhar (ou "not a git repository") — receita pro leigo
+A consolidação NÃO é feita pelo agente durante o run. Periodicamente, **o dono do
+repo** (não o dev):
 
-O problema mais comum em campo: a pasta do projeto foi **baixada** (zip/download),
-não **clonada**. Pasta baixada não tem `.git` → o agente salva no disco mas **não
-consegue enviar pro GitHub** (foi exatamente o que aconteceu num run real).
+1. **Coleta** os arquivos locais (`RECOMMENDATIONS.md` e/ou
+   `apex-test-loop-recommendations.md`) de cada dev que rodou a skill.
+2. **Lê e faz a curadoria**: junta itens equivalentes, descarta ruído e duplicata, e
+   acrescenta ao repo **apenas o que é relevante e sem sobreposição**.
+3. **Commita centralmente** — só ele tem acesso de escrita, então entra num único
+   lugar, sem conflito de push entre devs.
+4. Os devs **puxam a versão curada** rodando o comando de instalação de novo.
 
-**Solução definitiva (fazer UMA vez): usar um CLONE, não um download.**
-
-```bash
-# 1) Clonar o repo (cria .git + remote + rastreio da main automaticamente):
-git clone https://github.com/brunotrolo/Salesforce-Apex-Cover-Loop.git
-
-# 2) Trabalhar SEMPRE dentro dessa pasta clonada (o OpenCode aponta pra ela).
-#    A partir daí, git add/commit/push funcionam.
-```
-
-**Se o push pedir senha/der erro de autenticação** (o Git precisa provar quem é você):
-- **Opção A (mais fácil): GitHub CLI** — instale o `gh` e rode `gh auth login`
-  (ele guarda a credencial; o `git push` passa a funcionar sozinho).
-- **Opção B: Personal Access Token** — crie um token em github.com → Settings →
-  Developer settings → Tokens, e use-o como senha no primeiro push (o Git guarda).
-
-**Enquanto a pasta não for um clone:** as recomendações ficam salvas localmente, mas
-não sobem sozinhas. O agente deve DIZER isso ao usuário (não fingir que subiu) e
-apontar esta receita — nunca deixar o trabalho "perdido no disco" sem avisar.
+Assim, N devs geram aprendizado **em paralelo**, sem push, sem acesso ao repo e sem
+pisar no trabalho um do outro. A junção é um passo humano, central.
 
 ## Exemplos Reais
 
@@ -108,6 +89,7 @@ apontar esta receita — nunca deixar o trabalho "perdido no disco" sem avisar.
 
 ---
 
-**Todas as P-XXXX vivem em:** `references/apex-test-loop-recommendations.md` (versionado no git)
+**Todas as P-XXXX vivem em:** `references/apex-test-loop-recommendations.md` — **local** na
+cópia do seu projeto; os itens no repo-casa foram curados pelo mantenedor.
 
 **Histórico da skill (R-0001 em diante):** `.claude/skills/apex-test-loop/RECOMMENDATIONS.md` (local)

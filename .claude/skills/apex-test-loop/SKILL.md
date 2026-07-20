@@ -416,8 +416,8 @@ ledger CERTO — sao dois, com propositos distintos:
 
 | O que voce aprendeu | Onde registrar | Formato |
 |---|---|---|
-| Friccao com **a propria skill** (guard travou algo legitimo, delegacao confusa, passo faltando, comando `sf` errado) | `RECOMMENDATIONS.md` (local da skill) | `R-XXXX` 🟡 Proposta |
-| **Padrao de teste agnostico** util para QUALQUER classe futura (categoria de linha inalcancavel, meta realista por tipo, armadilha recorrente) | `references/apex-test-loop-recommendations.md` (versionado) | `P-XXXX` — veja `references/contribution-guidelines.md` |
+| Friccao com **a propria skill** (guard travou algo legitimo, delegacao confusa, passo faltando, comando `sf` errado) | `RECOMMENDATIONS.md` (**local** — nunca da push) | `R-XXXX` 🟡 Proposta |
+| **Padrao de teste agnostico** util para QUALQUER classe futura (categoria de linha inalcancavel, meta realista por tipo, armadilha recorrente) | `references/apex-test-loop-recommendations.md` (**local** — nunca da push) | `P-XXXX` — veja `references/contribution-guidelines.md` |
 
 **So registre quando houve FRICCAO/APRENDIZADO REAL** (guard bloqueou algo legitimo,
 dependencia travou, muitas iteracoes, decisao humana por ambiguidade, delegacao
@@ -435,10 +435,14 @@ avise o usuario na mesma resposta.
 
 Para cada friccao (max ~3): confira `RECOMMENDATIONS.md` (nao duplicar) e **anexe**
 uma entrada `R-XXXX` com status `🟡 Proposta` (gatilho real, problema, mudanca
-acionavel). Avise o usuario: *"registrei N recomendacao(oes); peca para eu revisar
-quando quiser"*. Escrever neste `.md` e permitido. **Melhoria nunca afrouxa as
-Travas nem o modo de qualidade vigente.** Ao **processar**: decida `🟢 Aprovada`/`⚪ Reprovada`/`✅ Aplicada`
-e atualize o status com o PR.
+acionavel). Escrever nestes `.md` e permitido; **🚫 dar `git push` de recomendacoes
+NAO e** — este `.claude/` e uma copia no projeto do dev, sem acesso ao repo-casa, e
+varios devs empurrando se sobrescreveriam. Avise o usuario deixando claro que ficou
+**local**: *"registrei N recomendacao(oes) no arquivo local; envie ao mantenedor
+quando ele abrir a coleta, ou peca para eu revisar"*. A consolidacao no repo e um
+passo **central e manual** do mantenedor (`references/contribution-guidelines.md` →
+"papel do mantenedor"). **Melhoria nunca afrouxa as Travas nem o modo de qualidade
+vigente.** Ao **processar** (revisao local): decida `🟢 Aprovada`/`⚪ Reprovada`/`✅ Aplicada`.
 
 ## Modo guiado (passo a passo para leigos)
 

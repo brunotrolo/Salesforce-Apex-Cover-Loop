@@ -117,7 +117,7 @@ Inclui:
 - Estrutura de arquivos
 - Memoria de estado (checkpoints)
 - Autoaprendizado (recomendacoes R-XXXX)
-- Contribuir de volta (clone vs copia)
+- Contribuir de volta (recomendacoes locais → coleta central)
 - Observacoes (100%, DML, Flow, dependencias, plateau)
 
 ---
