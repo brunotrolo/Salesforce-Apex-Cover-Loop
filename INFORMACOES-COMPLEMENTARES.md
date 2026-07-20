@@ -200,7 +200,7 @@ Em vez de copiar o `.claude`, **clone** este repo e trabalhe dentro dele, coloca
 
 **Solucao:** use um CLONE, nao um download.
 ```bash
-git clone https://github.com/brunotrolo/salesforce-apex-cover-loop.git
+git clone https://github.com/brunotrolo/Salesforce-Apex-Cover-Loop.git
 ```
 
 Se o push pedir senha/der erro de autenticacao:
