@@ -1,6 +1,16 @@
-# Informacoes Complementares — Salesforce Apex Cover Loop
+<p align="center">
+  <img src="assets/banner.svg" width="880" alt="Salesforce Apex Cover Loop">
+</p>
 
-> **Comeco rapido:** [README.md](./README.md) (2 min) ← → **INFORMACOES-COMPLEMENTARES.md** (referencia detalhada)
+<p align="center">
+  <a href="./README.md">📄 README</a> &nbsp;·&nbsp; <b>📖 Informações</b> &nbsp;·&nbsp; <a href="./LICENSE">⚖️ MIT License</a>
+</p>
+
+---
+
+# 📖 Informações
+
+Referência detalhada da skill. Para o começo rápido (2 min), veja o **[README](./README.md)**.
 
 ---
 
@@ -243,3 +253,21 @@ Detalhes em `references/runtime-blockers.md`.
 ### Cobertura empacada (plateau)
 
 Se a % ficar parada por 2 iteracoes enquanto os testes aumentam, o loop para de escrever testes e diagnostica quais linhas continuam descobertas (regra do platô) — testes novos passam a mirar linhas especificas.
+
+---
+
+<p align="center">
+  ⭐ <b><a href="https://github.com/brunotrolo/Salesforce-Apex-Cover-Loop/stargazers">Dê uma star no repo</a></b> para ser avisado quando novas skills e melhorias saírem.
+</p>
+
+<p align="center">
+  <sub>
+    Craft de teste vindo das <b><a href="https://github.com/forcedotcom/sf-skills">skills oficiais da Salesforce</a></b> (<code>forcedotcom/sf-skills</code>, Apache-2.0) &nbsp;·&nbsp;
+    <a href="https://developer.salesforce.com/tools/salesforcecli">Salesforce CLI</a> &nbsp;·&nbsp;
+    <a href="https://docs.claude.com/en/docs/claude-code">Claude Code</a>
+  </sub>
+</p>
+
+<p align="center">
+  <sub>Orquestração, travas de segurança e autoaprendizado © <a href="https://github.com/brunotrolo">brunotrolo</a> · <a href="./LICENSE">MIT</a>. Skills <code>platform-*</code> redistribuídas sob Apache-2.0 (ver <code>.claude/skills/VENDOR-ATTRIBUTION.md</code>).</sub>
+</p>

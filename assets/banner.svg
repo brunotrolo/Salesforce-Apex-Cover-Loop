@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="260" viewBox="0 0 960 260" role="img" aria-label="Salesforce Apex Cover Loop">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0B4C8C"/>
+      <stop offset="0.55" stop-color="#032D60"/>
+      <stop offset="1" stop-color="#00132E"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#00A1E0"/>
+      <stop offset="1" stop-color="#22E3C6"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="960" height="260" rx="24" fill="url(#bg)"/>
+
+  <!-- loop / autorenew glyph (Material path), scaled to ~110px, sits on the left -->
+  <g transform="translate(92 74) scale(4.6)" fill="url(#accent)">
+    <path d="M12 6v3l4-4-4-4v3c-4.42 0-8 3.58-8 8 0 1.57.46 3.03 1.24 4.26L6.7 14.8c-.45-.83-.7-1.79-.7-2.8 0-3.31 2.69-6 6-6zm6.76 1.74L17.3 9.2c.44.84.7 1.79.7 2.8 0 3.31-2.69 6-6 6v-3l-4 4 4 4v-3c4.42 0 8-3.58 8-8 0-1.57-.46-3.03-1.24-4.26z"/>
+  </g>
+
+  <!-- title + tagline -->
+  <text x="248" y="112" font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="42" font-weight="700" fill="#FFFFFF">Salesforce Apex Cover Loop</text>
+  <text x="250" y="150" font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="18" fill="#BCD5F0">Leva sua classe Apex a &#8805;99% de cobertura &#8212; em loop fechado e seguro.</text>
+
+  <!-- pills -->
+  <g font-family="'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="15" font-weight="600">
+    <rect x="250" y="176" width="140" height="30" rx="15" fill="#04203F" stroke="#22E3C6" stroke-opacity="0.55"/>
+    <text x="320" y="196" fill="#22E3C6" text-anchor="middle">&#8805; 99% coverage</text>
+
+    <rect x="402" y="176" width="192" height="30" rx="15" fill="#04203F" stroke="#00A1E0" stroke-opacity="0.55"/>
+    <text x="498" y="196" fill="#7FD3F2" text-anchor="middle">Claude Code &#183; OpenCode</text>
+
+    <rect x="606" y="176" width="180" height="30" rx="15" fill="#04203F" stroke="#8AA9D6" stroke-opacity="0.45"/>
+    <text x="696" y="196" fill="#BCD5F0" text-anchor="middle">segurança 3 camadas</text>
+  </g>
+</svg>

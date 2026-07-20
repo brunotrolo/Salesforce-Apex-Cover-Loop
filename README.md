@@ -1,4 +1,24 @@
-# Salesforce Apex Cover Loop
+<p align="center">
+  <img src="assets/banner.svg" width="880" alt="Salesforce Apex Cover Loop">
+</p>
+
+<p align="center">
+  <em>O agente autônomo que leva sua classe Apex a &#8805;99% de cobertura &#8212; com segurança embutida.</em>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/github/stars/brunotrolo/Salesforce-Apex-Cover-Loop?style=flat-square&color=00A1E0&label=stars" alt="Stars">
+  <img src="https://img.shields.io/badge/coverage-%E2%89%A599%25-04E1CB?style=flat-square" alt="Coverage ≥99%">
+  <img src="https://img.shields.io/badge/works%20with-Claude%20Code%20%C2%B7%20OpenCode-032D60?style=flat-square" alt="Works with Claude Code and OpenCode">
+  <img src="https://img.shields.io/badge/craft-Salesforce%20sf--skills-00A1E0?style=flat-square" alt="Salesforce sf-skills">
+  <img src="https://img.shields.io/badge/license-MIT-111111?style=flat-square" alt="MIT license">
+</p>
+
+<p align="center">
+  <b>📄 README</b> &nbsp;·&nbsp; <a href="./INFORMACOES.md">📖 Informações</a> &nbsp;·&nbsp; <a href="./LICENSE">⚖️ MIT License</a>
+</p>
+
+---
 
 Arquitetura **hibrida** para o Claude Code criar **classes de teste Apex** no **minimo viavel deployavel**: meta padrao `>= 99%` de cobertura com **todos os testes passando** (o que Salesforce exige para deploy). Quer verificacao exaustiva? Use `--rigoroso`.
 
@@ -38,7 +58,7 @@ git clone --depth 1 https://github.com/brunotrolo/Salesforce-Apex-Cover-Loop.git
 git clone --depth 1 https://github.com/brunotrolo/Salesforce-Apex-Cover-Loop.git .skill-tmp && mkdir -p .claude && cp -r .skill-tmp/.claude/. .claude/ && rm -rf .skill-tmp
 ```
 
-> **Para atualizar:** rode o mesmo comando de novo. Para mais detalhes (alternativas, contribuir melhorias), veja [INFORMACOES-COMPLEMENTARES.md](./INFORMACOES-COMPLEMENTARES.md).
+> **Para atualizar:** rode o mesmo comando de novo. Para mais detalhes (alternativas, contribuir melhorias), veja [INFORMACOES.md](./INFORMACOES.md).
 
 ### 3. Abra o Claude Code
 
@@ -71,7 +91,7 @@ Ele ensina passo a passo e pede sua confirmacao.
 
 ## 🔒 Seguranca
 
-A skill **nunca mexe na classe de producao** — bloqueio em 3 camadas (instrucoes, regras deny, hook). Apagar/sobrescrever producao é impossivel mesmo em modo bypass. Detalhes em [INFORMACOES-COMPLEMENTARES.md](./INFORMACOES-COMPLEMENTARES.md).
+A skill **nunca mexe na classe de producao** — bloqueio em 3 camadas (instrucoes, regras deny, hook). Apagar/sobrescrever producao é impossivel mesmo em modo bypass. Detalhes em [INFORMACOES.md](./INFORMACOES.md).
 
 ---
 
@@ -79,7 +99,7 @@ A skill **nunca mexe na classe de producao** — bloqueio em 3 camadas (instruco
 
 Para tudo o mais (travas de seguranca, modo bypass, estrutura, memoria de estado, autoaprendizado, contribuir de volta, troubleshooting), veja:
 
-**→ [INFORMACOES-COMPLEMENTARES.md](./INFORMACOES-COMPLEMENTARES.md)**
+**→ [INFORMACOES.md](./INFORMACOES.md)**
 
 Inclui:
 - Skills oficiais importadas
@@ -92,3 +112,21 @@ Inclui:
 - Autoaprendizado (recomendacoes R-XXXX)
 - Contribuir de volta (clone vs copia)
 - Observacoes (100%, DML, Flow, dependencias, plateau)
+
+---
+
+<p align="center">
+  ⭐ <b><a href="https://github.com/brunotrolo/Salesforce-Apex-Cover-Loop/stargazers">Dê uma star no repo</a></b> para ser avisado quando novas skills e melhorias saírem.
+</p>
+
+<p align="center">
+  <sub>
+    Craft de teste vindo das <b><a href="https://github.com/forcedotcom/sf-skills">skills oficiais da Salesforce</a></b> (<code>forcedotcom/sf-skills</code>, Apache-2.0) &nbsp;·&nbsp;
+    <a href="https://developer.salesforce.com/tools/salesforcecli">Salesforce CLI</a> &nbsp;·&nbsp;
+    <a href="https://docs.claude.com/en/docs/claude-code">Claude Code</a>
+  </sub>
+</p>
+
+<p align="center">
+  <sub>Orquestração, travas de segurança e autoaprendizado © <a href="https://github.com/brunotrolo">brunotrolo</a> · <a href="./LICENSE">MIT</a>. Skills <code>platform-*</code> redistribuídas sob Apache-2.0 (ver <code>.claude/skills/VENDOR-ATTRIBUTION.md</code>).</sub>
+</p>
