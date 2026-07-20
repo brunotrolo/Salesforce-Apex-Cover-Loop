@@ -44,13 +44,12 @@ Voce informa uma classe → o Claude entra num ciclo fechado ate atingir a meta 
 - Node 18+
 - Projeto SFDX com `force-app/*/classes/`
 
-> **Opcional — rodar com [OpenCode](https://opencode.ai) + modelo local grátis** (via [Ollama](https://ollama.com), sem custo de API):
+> **Opcional — rodar com [OpenCode](https://opencode.ai) + [DeepSeek](https://platform.deepseek.com)** (barato, sem GPU):
 > ```bash
 > npm install -g opencode-ai
-> opencode providers add ollama --url http://localhost:11434
-> opencode --local http://localhost:11434 --model qwen2.5-coder:14b
+> opencode   # no app: /connect → deepseek → cole a API key → escolha DeepSeek-V4-Pro
 > ```
-> A skill funciona igual no OpenCode — ele lê o mesmo `.claude/skills/`. Não tem Ollama/OpenCode ainda? **[Passo a passo do zero em Informações](./INFORMACOES.md#rodar-no-opencode-do-zero-gr%C3%A1tis-local)**.
+> [Pegue a API key aqui](https://platform.deepseek.com/api_keys). A skill funciona igual no OpenCode (mesmo `.claude/skills/`). **[Passo a passo em Informações](./INFORMACOES.md#rodar-no-opencode-com-deepseek-barato-sem-gpu)**.
 
 ### 2. Instale — UM comando
 

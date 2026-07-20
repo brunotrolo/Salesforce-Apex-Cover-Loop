@@ -36,36 +36,28 @@ escrever teste  →  deploy (sf)  →  rodar teste + cobertura  →  ler linhas 
 
 ---
 
-## Rodar no OpenCode do zero (grátis, local)
+## Rodar no OpenCode com DeepSeek (barato, sem GPU)
 
-O **[OpenCode](https://opencode.ai)** é um CLI de agente open-source que lê o **mesmo** `.claude/skills/` — então a skill funciona igual. Combinado com o **[Ollama](https://ollama.com)** (modelos locais), você roda o loop **sem custo de API**. Passo a passo do zero:
+O **[OpenCode](https://opencode.ai)** é um CLI de agente open-source que lê o **mesmo** `.claude/skills/` — a skill funciona igual. Com a API da **[DeepSeek](https://platform.deepseek.com)** (qualidade de ponta a uma fração do custo de Claude/GPT), você roda o loop **sem GPU e sem baixar modelo**. Este é o mínimo viável, do zero:
 
-**1. Instale o Ollama** (roda os modelos na sua máquina):
-```bash
-# Mac / Linux:
-curl -fsSL https://ollama.com/install.sh | sh
-# Windows: baixe o instalador em https://ollama.com/download
-```
-
-**2. Baixe um modelo de código** (o Ollama já sobe sozinho em `localhost:11434`):
-```bash
-ollama pull qwen2.5-coder:14b     # ~9 GB de RAM/VRAM; use :7b se a máquina for mais fraca
-```
-
-**3. Instale o OpenCode:**
+**1. Instale o OpenCode** (precisa Node 18+):
 ```bash
 npm install -g opencode-ai
 ```
 
-**4. Aponte o OpenCode pro Ollama e rode** (de dentro da pasta do seu projeto, onde está o `.claude/`):
+**2. Pegue uma API key da DeepSeek:** crie a conta em **[platform.deepseek.com](https://platform.deepseek.com/api_keys)** e gere uma key.
+
+**3. Conecte o DeepSeek ao OpenCode.** Abra o app na pasta do seu projeto (onde está o `.claude/`):
 ```bash
-opencode providers add ollama --url http://localhost:11434
-opencode --local http://localhost:11434 --model qwen2.5-coder:14b
+opencode
 ```
+Dentro do app, digite `/connect`, escolha **`deepseek`**, cole a API key e selecione o modelo **DeepSeek-V4-Pro** (ou **V4-Flash**, mais barato pras classes simples).
 
-**5. Use igual ao Claude Code:** `/apex-test-loop AccountService` ou em linguagem natural.
+**4. Use igual ao Claude Code:** `/apex-test-loop AccountService` ou em linguagem natural.
 
-> **Ressalva honesta:** modelos locais menores (7B–14B) erram mais que o Claude — podem alucinar flags do `sf` ou desistir cedo do loop. Por isso a skill tem os **fallbacks** e as **travas** documentados aqui. Para as classes mais difíceis, o Claude Code entrega com menos idas e vindas; o OpenCode local brilha no custo zero e nas classes de complexidade baixa/média.
+> **Modelos (jul/2026):** use os IDs **V4-Pro** / **V4-Flash** direto — os nomes antigos `deepseek-chat` e `deepseek-reasoner` estão sendo aposentados (param de resolver após 24/07/2026).
+
+> **Ressalva honesta:** DeepSeek é forte e barato, mas ainda erra mais que o Claude em Apex — pode alucinar flags do `sf` ou desistir cedo do loop. Por isso a skill tem os **fallbacks** e as **travas** documentados aqui. Para as classes mais difíceis, o Claude Code entrega com menos idas e vindas; o OpenCode+DeepSeek brilha no custo baixo e nas classes de complexidade baixa/média.
 
 ---
 
