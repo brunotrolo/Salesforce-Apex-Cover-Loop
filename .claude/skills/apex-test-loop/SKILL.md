@@ -300,6 +300,19 @@ MESMO estado; veja `references/run-state.md`).
        testes existentes/dado real (melhor tatica de COBERTURA), e no MVP guardas de
        config sao aceitaveis como fallback de portabilidade; no `--rigoroso`,
        enfraquecer o teste e proibido (Regras de qualidade).
+       - **CPU limit por bulk DML numa trigger pesada** (ex.: `update`/`insert` de
+         varios registros num unico `startTest/stopTest`, e a trigger faz muito
+         trabalho por registro — `getDescribe`/`getRecordTypeInfos`, dezenas de `if`):
+         a correcao NAO e remover o cenario (anti-padrao A-0002 / R-0015) nem reduzir
+         a variedade — e
+         **dividir em grupos menores, cada um com seu proprio `Test.startTest()/
+         stopTest()`** (cada grupo ganha orcamento de CPU fresco). Detalhe e heuristica
+         de tamanho em `references/runtime-blockers.md` (secao 1). **Varredura
+         obrigatoria (nao so o teste que falhou):** procure na classe de teste OUTROS
+         lotes grandes (`insert`/`update`/`Database.insert|update` de List com ~5+
+         registros dentro de `startTest/stopTest`) e aplique o mesmo split
+         preventivamente — use a ferramenta **Grep** do agente (nao dependa de `grep`
+         de shell; R-0031). Registre no checkpoint.
      - **Circuit-breaker de investigacao (aprendido em campo):** se a causa de UMA
        falha nao ficar clara em **2-3 passos** de leitura/investigacao solta, PARE de
        cavar — prefira **um unico deploy com diagnostico dirigido** (assert/debug
@@ -325,8 +338,19 @@ MESMO estado; veja `references/run-state.md`).
    - Passou → veja `coveredPercent` e `uncoveredLines`.
 
 4. **Decidir e SALVAR o checkpoint**:
-   - `coveredPercent >= 99` **e** todos os testes passando
+   - `coveredPercent >= 99` **e** todos os testes passando **e** `slowTests` vazio
      → **concluir**. (No `--rigoroso`, exige tambem assert real em todo metodo.)
+   - **⚠️ Portao de estabilidade (nao pule) — `slowTests` nao vazio:** o script
+     sinaliza metodos lentos (>= `slowMs`, padrao 8s de wall-clock). Eles PASSAM agora,
+     mas sao **deploy-blockers latentes**: tempo perto do teto de CPU estoura de forma
+     INTERMITENTE numa org carregada — e por isso que a MESMA suite pode falhar 17
+     testes numa org cheia e 1 numa vazia (o run que "passou uma vez" NAO prova portabilidade,
+     que e o objetivo do MVP). Trate cada `slowTests` como pendencia: **divida o metodo
+     em grupos menores, cada um com seu proprio `Test.startTest()/stopTest()`**
+     (`references/runtime-blockers.md`, secao 1) ANTES de declarar a classe pronta.
+     So conclua quando `slowTests` estiver vazio (ou o usuario aceitar o risco
+     explicitamente, registrado no checkpoint). Isso NAO e o mesmo que "teste falhando"
+     (Trava 5) — e a camada que pega o teste que ainda nao falhou, mas vai.
    - Senão → leia a classe de producao **nas `uncoveredLines`** (pelos intervalos do
      inventario de metodos — nao o arquivo inteiro), entenda os cenarios que faltam
      (ramo `else`? `catch`? item de `switch`? loop vazio/cheio?) e adicione **testes

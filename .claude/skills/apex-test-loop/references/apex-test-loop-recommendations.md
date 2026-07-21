@@ -24,6 +24,9 @@ Veja `.claude/skills/apex-test-loop/RECOMMENDATIONS.md` (detalhado). Resumo:
 | R-0031 | ✅ | Inventario do Passo 0 portavel (grep quebra no Windows) | SKILL.md (orientacao) |
 | R-0032 | ✅ | Iteracao rapida com `--tests` ao depurar (c/ ressalva de cobertura) | SKILL.md, sf-cli-and-coverage.md |
 | R-0033 | ✅ | Fallback de comandos `sf` crus (flags alucinadas corrigidas) | sf-cli-and-coverage.md |
+| R-0034 | ✅ | Bulk DML em trigger pesada estoura CPU → split c/ startTest proprio | runtime-blockers.md, SKILL.md |
+| R-0035 | ✅ | Varredura por outros bulks grandes ao achar CPU limit (grep corrigido) | SKILL.md, runtime-blockers.md |
+| R-0036 | ✅ | Portao de estabilidade: `slowTests` sinaliza CPU-fragil antes de concluir | apex-coverage.mjs, SKILL.md, runtime-blockers.md |
 
 ---
 
@@ -262,6 +265,35 @@ padronizado em `references/run-state.md`).
 
 ---
 
+### P-0011 — Bulk DML em Trigger Pesada: Fragilidade de CPU Intermitente
+
+**Padrão:** Um teste faz DML (`insert`/`update`) de vários registros num único
+`Test.startTest()/stopTest()`, e cada registro dispara uma trigger que gasta muita CPU
+por registro (`getDescribe`/`getRecordTypeInfos`, dezenas/centenas de `if` em cascata).
+A soma estoura o limite de ~10s de CPU. O sintoma traiçoeiro: **depende da carga da
+org** — o mesmo teste passa numa org vazia e estoura numa cheia, então a mesma suite
+falha um número diferente de testes em máquinas diferentes.
+
+**Estratégia:**
+1. **Split, não redução.** Divida o método em grupos de poucos registros (comece por
+   ~3-4), **cada grupo com seu próprio `Test.startTest()/stopTest()`** — cada
+   `startTest` reseta o contador de CPU, dando orçamento fresco. Todos os cenários
+   distintos continuam cobertos, só redistribuídos. Nunca remova o cenário (ver A-0002).
+2. **Dimensione bem abaixo do teto.** "3-4" é ponto de partida; se um registro já custa
+   CPU alta na trigger, use menos. Se a trigger tem `getDescribe`/muitos `if`, faça o
+   split **preventivo**, sem esperar a falha.
+3. **Detecte os frágeis que ainda passam.** Um método perto do teto é deploy-blocker
+   latente. O `apex-coverage.mjs` sinaliza em `slowTests` (tempo por método >= `slowMs`);
+   divida-os antes de concluir (portão de estabilidade, SKILL.md passo 4).
+4. **Varra os vizinhos.** Ao achar um, procure outros lotes grandes na mesma classe
+   (List com ~5+ registros em DML dentro de `startTest`) e aplique o mesmo split.
+
+**Recomendação:** Uma trigger que gasta CPU alta por registro também é candidata a
+**achado de produção** (escala mal em bulk real: describes não cacheados, `if` que
+deveria ser `Map`) — reporte no encerramento, sem tocar na produção.
+
+---
+
 ## Seção 3: Anti-Padrões (O Que Nunca Fazer)
 
 Aprendidos de execuções reais — aplicáveis a qualquer classe.
@@ -359,5 +391,5 @@ Quando rodar a skill `apex-test-loop` em uma classe:
 
 ---
 
-**Atualizado em:** 2026-07-19  
-**Versão:** 1.3 (33 recomendações da skill + 10 padrões de campo + 5 anti-padrões)
+**Atualizado em:** 2026-07-21  
+**Versão:** 1.4 (36 recomendações da skill + 11 padrões de campo + 5 anti-padrões)

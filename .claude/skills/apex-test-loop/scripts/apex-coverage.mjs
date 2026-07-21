@@ -11,10 +11,13 @@
 //
 // Uso:
 //   node apex-coverage.mjs --class MinhaClasse [--test MinhaClasseTest] \
-//        [--org alias] [--test-only | --deploy] [--extra ApexClass:TestDataFactory,...]
+//        [--org alias] [--test-only | --deploy] [--extra ApexClass:TestDataFactory,...] \
+//        [--slow-ms 8000]
 //   --test-only  deploya SOMENTE a classe de teste (PADRAO recomendado do loop).
 //   --deploy     deploya producao + teste (so se a producao for nova/alterada).
 //   (sem --test-only nem --deploy: nao deploya — so mede o que JA esta na org.)
+//   --slow-ms N  limiar (ms) para sinalizar metodos LENTOS/FRAGEIS em "slowTests"
+//                (padrao 8000). Fragilidade de CPU latente, nao falha — ver SKILL.md.
 //
 // IMPORTANTE (constraint do Salesforce): testes Apex SEMPRE rodam na ORG, nunca
 // na maquina local. Para a org executar um teste NOVO/ALTERADO, o codigo do teste
@@ -39,6 +42,12 @@ const org = arg('org');
 const doDeploy = !!arg('deploy', false); // deploy classe de producao + teste
 const testOnly = !!arg('test-only', false); // deploy SOMENTE a classe de teste (recomendado)
 const extra = arg('extra'); // "ApexClass:Foo,ApexClass:Bar"
+// Limiar (ms de wall-clock) acima do qual um metodo de teste e sinalizado como
+// LENTO/FRAGIL. Nao e CPU exato (RunTime inclui DML/SOQL que nao contam CPU), mas e
+// o melhor proxy deterministico disponivel no JSON do run: metodos lentos costumam
+// ser os que "raspam" o limite de CPU e falham INTERMITENTEMENTE conforme a carga da
+// org (mesma suite pode falhar 17 numa org cheia e 1 numa vazia). Ajustavel: --slow-ms N.
+const slowMs = Number(arg('slow-ms', 8000)) || 8000;
 const willDeploy = doDeploy || testOnly;
 
 if (!className || !testName) {
@@ -220,6 +229,19 @@ const failures = tests
     stackTrace: x.StackTrace || x.stackTrace,
   }));
 
+// Sinal de FRAGILIDADE (nao e falha): metodos cujo tempo de execucao passa de
+// `slowMs`. Sao os candidatos a estourar CPU de forma INTERMITENTE numa org
+// carregada — mesmo passando agora. O loop deve trata-los como deploy-blockers
+// latentes (dividir em grupos menores com startTest/stopTest proprio) ANTES de
+// declarar a classe pronta. Veja SKILL.md (passo 4) e runtime-blockers.md (secao 1).
+const slowTests = tests
+  .map((x) => ({
+    method: `${x.ApexClass?.Name || x.apexClass?.name || testName}.${x.MethodName || x.methodName}`,
+    runtimeMs: Number(x.RunTime ?? x.runTime ?? x.runtime ?? 0),
+  }))
+  .filter((x) => Number.isFinite(x.runtimeMs) && x.runtimeMs >= slowMs)
+  .sort((a, b) => b.runtimeMs - a.runtimeMs);
+
 // Localiza a cobertura da classe sob teste
 const covListRaw = r.coverage?.coverage || r.coverage || [];
 const covList = Array.isArray(covListRaw) ? covListRaw : [];
@@ -258,6 +280,10 @@ emit(
     passing: summary.passing,
     failing: summary.failing ?? failures.length,
     failures,
+    // Metodos lentos (>= slowMs) — fragilidade de CPU latente, NAO falha. Dividir
+    // antes de concluir (passo 4 do SKILL.md). Ausente quando nenhum passou do limiar.
+    slowTests: slowTests.length ? slowTests : undefined,
+    slowMs: slowTests.length ? slowMs : undefined,
     class: className,
     coverageFound: !!entry,
     coveredPercent,

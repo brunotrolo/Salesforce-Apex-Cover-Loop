@@ -489,4 +489,63 @@ existe tanto no repositorio-casa quanto na copia dentro do seu projeto Salesforc
 > Um `AGENTS.md` divergente na raiz confunde runs futuros — o certo e a skill ser a
 > fonte unica; as partes corretas ja foram absorvidas aqui.
 
-<!-- A skill anexa novas propostas ABAIXO desta linha, como R-0034, R-0035... -->
+### R-0034 — [campo] Bulk DML em trigger pesada estoura CPU → split em grupos com startTest/stopTest proprio
+- **Status:** ✅ Aplicada (esta sessao) — proposta em campo (OpenCode, CaseHandler), processada e refinada aqui
+- **Data:** 2026-07-20 (campo) / 2026-07-21 (processada)
+- **Gatilho:** `testDML_Update_CoversUpdateCaseAllSMS` (CaseHandlerTest) atualizava 12
+  `Case` num unico `startTest/stopTest`; cada Case disparava o `Case_trg` inteiro (~200
+  `if` em `setToQueue` + ~35 `getDescribe` em `setIdSubCategoryItau`). 12× de uma vez
+  estourava os ~10s de CPU. Confirmado em maquina do usuario (rodando a classe isolada).
+- **Problema:** a skill orientava bulk 251+ e lote maximo por deploy, mas NAO alertava
+  que DML de muitos registros num mesmo `startTest/stopTest` estoura CPU quando a
+  trigger e pesada; faltava heuristica de "quantos registros por `startTest`" e o
+  padrao de split preventivo.
+- **Melhoria aplicada:** `runtime-blockers.md` (secao 1) ganha o caso "bulk DML numa
+  trigger pesada" com a correcao por SPLIT (grupos de ~3-4 registros, cada um com
+  `startTest/stopTest` proprio = orcamento de CPU fresco), a heuristica de tamanho
+  (dimensionar BEM abaixo do teto; split preventivo se a trigger tem `getDescribe`/
+  muitos `if`) e a nota de que os N cenarios sao PRESERVADOS no split (nunca reduzir
+  variedade — contraste com A-0002). SKILL.md passo 3 aponta o caso e a correcao.
+- **Refinamento sobre a proposta de campo:** a proposta tratava o "12 estoura" como
+  determinístico; na verdade e **dependente de carga** (ver R-0036) — o mesmo teste
+  passa numa org vazia. Por isso a resposta completa nao e so "split quando falhar", e
+  tambem "split preventivo dos que estao lentos mas passando" (R-0036).
+
+### R-0035 — [campo] Varredura por OUTROS bulks grandes ao diagnosticar CPU limit
+- **Status:** ✅ Aplicada (esta sessao) — proposta em campo, grep corrigido
+- **Data:** 2026-07-20 (campo) / 2026-07-21 (processada)
+- **Gatilho:** ao corrigir o CPU limit acima, a boa pratica foi varrer a classe por
+  OUTROS testes com bulk DML >= 5 registros (achou-se so 1, mas poderiam existir mais
+  igualmente frageis) e aplicar o mesmo split.
+- **Problema:** a skill nao instruia essa varredura — a tendencia e focar so no teste
+  que falhou e ignorar vizinhos na mesma beira.
+- **Melhoria aplicada:** SKILL.md passo 3 (ramo CPU) e `runtime-blockers.md` (secao 1)
+  ganham a **varredura preventiva obrigatoria** por lotes grandes vizinhos.
+  **Correcao sobre a proposta de campo:** o grep sugerido misturava regex basica e
+  estendida (`\|` com `(insert|update)`) — alem de o R-0031 ja ter registrado que
+  `grep` de shell quebra entre ferramentas/OS. A skill manda usar a **ferramenta Grep
+  do agente** (Claude Code / OpenCode tem busca embutida), nao `grep` de shell.
+
+### R-0036 — Portao de estabilidade: sinalizar testes lentos (CPU-fragil) antes de concluir
+- **Status:** ✅ Aplicada (esta sessao)
+- **Data:** 2026-07-21
+- **Gatilho:** O usuario gerou classes de teste com o agente (cobertura >99%), passou-as
+  a um dev do time, e o dev viu **17 de 419 testes falharem** — mas ao rodar a mesma
+  classe na propria maquina, o usuario viu **so 1 falha** (CPU limit num bulk DML). Mesma
+  suite, contagens diferentes: puramente **carga da org**. O loop tinha declarado
+  ">99%, pronto" sobre uma unica execucao, entregando testes frageis.
+- **Problema (o gap que R-0034/R-0035 nao fecham):** o criterio de conclusao do loop
+  (`>=99% + todos passando`) media UMA execucao e nao tinha NENHUM conceito de margem/
+  estabilidade. Um teste que consome ~9s de CPU **passa numa org vazia e estoura numa
+  cheia** — um deploy-blocker latente que o loop dava por "concluido". O sinal (tempo
+  por metodo) existia no JSON do run mas o `apex-coverage.mjs` jogava fora.
+- **Melhoria aplicada:** (1) `apex-coverage.mjs` passa a extrair o tempo por metodo e
+  emitir `slowTests` (metodos >= `--slow-ms`, padrao 8000ms; wall-clock, proxy honesto
+  de CPU) + `slowMs`, ordenados desc — sinal deterministico de fragilidade, aditivo
+  (nao quebra o contrato existente). (2) SKILL.md passo 4 ganha o **Portao de
+  estabilidade**: so conclui com `slowTests` vazio (ou risco aceito explicitamente pelo
+  usuario e registrado no checkpoint); os lentos sao divididos ANTES de concluir. (3)
+  `runtime-blockers.md` (secao 1) explica a intermitencia por carga. Distinto da Trava 5
+  ("teste falhando"): esta camada pega o teste que **ainda nao falhou, mas vai**.
+
+<!-- A skill anexa novas propostas ABAIXO desta linha, como R-0037, R-0038... -->

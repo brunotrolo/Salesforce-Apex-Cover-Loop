@@ -38,6 +38,40 @@ Ordem de ataque:
 2. **Se a causa e o teste**: divida — um cenario por metodo (nunca "mega-teste" com
    dezenas de combinacoes); use `Test.startTest()/stopTest()` para zerar os limites
    antes da acao sob teste; mova setup pesado para `@TestSetup`.
+
+   **Caso mais comum e traicoeiro — bulk DML numa trigger pesada (aprendido em campo):**
+   um unico `insert`/`update` de VARIOS registros dentro de um `Test.startTest()/
+   stopTest()`, quando cada registro dispara uma trigger que faz muito trabalho por
+   registro (`getDescribe`/`getRecordTypeInfos`, dezenas/centenas de `if`), soma CPU
+   ate estourar os ~10s. Ex. real: 12 `Case` num unico `update` × trigger com ~200
+   `if` + ~35 `getDescribe` por Case = CPU limit.
+   - **A correcao e SPLIT, nao reducao de variedade.** Divida o metodo em **grupos de
+     poucos registros (comece por ~3-4), cada grupo com seu proprio `Test.startTest()/
+     stopTest()`** — cada `startTest` reseta o contador de CPU, entao cada grupo ganha
+     um orcamento de ~10s fresco. Os N cenarios distintos continuam TODOS cobertos, so
+     redistribuidos entre os grupos/metodos (no caso real: 12 cenarios preservados em
+     4 grupos). **Nunca remova o cenario** — compare com o anti-padrao A-0002 (e R-0015),
+     onde o bulk foi apagado; o split e a resposta certa.
+   - **Heuristica de tamanho:** o "~3-4" e ponto de partida, nao lei. Se um unico
+     registro ja custa ~800ms de CPU na trigger, ate 10 estouram — dimensione o grupo
+     para ficar BEM abaixo do teto (nao encostado nele). Se a trigger tem `getDescribe`/
+     `getRecordTypeInfos` no caminho ou muitos `if`, assuma poucos por DML **desde ja**
+     (split preventivo), sem esperar a falha.
+   - **Intermitencia (o motivo de o portao de estabilidade existir):** CPU limit
+     depende da CARGA da org no momento — um metodo que consome ~9s passa numa org
+     vazia e ESTOURA numa cheia. Por isso a MESMA suite pode falhar 17 numa maquina e
+     1 noutra. Um metodo que "passou uma vez" perto do teto NAO e portavel: o script
+     `apex-coverage.mjs` sinaliza esses em `slowTests`, e o passo 4 do SKILL.md manda
+     dividi-los ANTES de concluir, mesmo que estejam passando agora.
+   - **Varredura preventiva (nao so o teste que falhou):** ao diagnosticar um CPU limit
+     por bulk, procure na classe de teste OUTROS lotes grandes (List com ~5+ registros
+     em `insert`/`update`/`Database.insert|update` dentro de `startTest/stopTest`) e
+     aplique o mesmo split — os vizinhos costumam estar igualmente na beira. Use a
+     ferramenta **Grep** do agente (nao `grep` de shell; R-0031) e registre no checkpoint.
+   - **Achado de producao conexo:** trigger que gasta CPU alta por registro
+     (`getDescribe` nao cacheado, `if` em cascata que deveria ser `Map`) e candidata a
+     **achado de producao** (escala mal em bulk real) — reporte no encerramento sem
+     tocar na producao; a correcao e da `platform-apex-generate` com aprovacao humana.
 3. **Se a causa e a producao** (ex.: SOQL dentro de loop): isso e um **ACHADO DE
    PRODUCAO** — o teste bulk esta fazendo o trabalho dele. Registre no relatorio
    final (secao "Achados de producao") e no ledger; a correcao e da
