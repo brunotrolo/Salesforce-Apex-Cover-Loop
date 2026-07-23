@@ -42,7 +42,15 @@ seu prompt).
 1. **Checkpoint** (`state/<Classe>.md`): siga o template de
    `.claude/skills/apex-test-loop/references/run-state.md` — status, iteração,
    cobertura atual, histórico curto, linhas não cobertas, checklist de cenários,
-   próximo passo em uma frase concreta e acionável.
+   `portao_1_apex_run_test`, `portao_2_deploy_validate`, próximo passo em uma frase
+   concreta e acionável.
+   - **Trava dura (aprendida em campo):** se o orquestrador pedir para gravar
+     `status: concluido` mas `portao_2_deploy_validate` não vier como `confirmado`
+     (com o resultado real do `--validate` anexado ao pedido), **recuse** — grave
+     `status: em_andamento` com o próximo passo "rodar deploy validate (Portão 2)" e
+     avise o orquestrador em vez de aceitar a palavra dele. Você é a última camada
+     antes do checkpoint virar fonte de verdade; não decida "confia, já deve ter
+     rodado" — exija o dado.
 2. **Aprendizado** (só quando há fricção real, não em runs limpos):
    - Fricção com a própria orquestração/skill -> `RECOMMENDATIONS.md`, próximo
      `R-XXXX`, status `🟡 Proposta`.

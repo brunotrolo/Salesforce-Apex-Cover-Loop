@@ -621,4 +621,30 @@ existe tanto no repositorio-casa quanto na copia dentro do seu projeto Salesforc
   org e confirmar que `deployWouldSucceed`/`validateError` sao lidos corretamente.
   Se confirmar, mover para `✅ Aplicada`.
 
-<!-- A skill anexa novas propostas ABAIXO desta linha, como R-0039, R-0040... -->
+### R-0039 — V2 homologação: orquestrador pulou o Portão 2 e declarou concluído só com Portão 1
+- **Status:** 🟢 Aprovada e aplicada nesta mesma rodada
+- **Data:** 2026-07-23
+- **Gatilho:** primeiro run real de homologação da V2 (`invoiceSummary_ctr`, org
+  `OdinArchitect`). O orquestrador bateu 99% via `sf apex run test` (22/22 passing) e
+  escreveu `status: concluido` diretamente — **nunca invocou** o `apex-deploy-runner`
+  com `--validate`. O checkpoint final não tinha nenhum campo/menção ao Portão 2.
+- **Problema:** a instrução do Portão 2 existia só em prosa (passo 6 do
+  `apex-orchestrator.md`) — não havia nenhuma trava estrutural no checkpoint que
+  tornasse impossível concluir sem o dado do `deploy validate`. Um modelo (mesmo
+  forte) pode "esquecer" um passo de prosa sob pressão de já ter batido a meta visível.
+- **Melhoria aplicada:**
+  1. `references/run-state.md`: template do checkpoint ganha os campos
+     `portao_1_apex_run_test` e `portao_2_deploy_validate` (pendente/confirmado/falhou)
+     — agora é visível e explícito, não implícito.
+  2. Regra nova: `status: concluido` **exige** `portao_2_deploy_validate: confirmado`.
+  3. `apex-state-recorder.md`: ganha trava dura — recusa gravar `concluido` sem o
+     resultado do `--validate` anexado ao pedido; grava `em_andamento` e devolve ao
+     orquestrador.
+  4. `apex-orchestrator.md`: passo de autonomia ganha aviso explícito citando esta
+     falha real, deixando claro que bater o Portão 1 nunca é suficiente sozinho.
+- **Próximo passo:** re-rodar a homologação (ou continuar com uma classe nova) e
+  confirmar que, desta vez, o checkpoint final mostra `portao_2_deploy_validate:
+  confirmado` com o resultado real do `deploy validate`. Só então R-0037/R-0038 podem
+  virar `✅ Aplicada`.
+
+<!-- A skill anexa novas propostas ABAIXO desta linha, como R-0040, R-0041... -->

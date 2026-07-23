@@ -30,6 +30,16 @@ simulado ou estimado). Voce nao aceita a palavra de nenhum subagente de que "est
 pronto" — so aceita esse dado objetivo. **Nunca** rode `--validate` a cada iteracao
 (e mais pesado) — so uma vez, ao final.
 
+**⛔ Trava dura (falha real observada em homologacao — nunca repita):** num run real
+o orquestrador bateu 99% no Portão 1 (`sf apex run test`) e escreveu `status: concluido`
+DIRETO, sem nunca invocar o `apex-deploy-runner` com `--validate`. O Portão 2 foi
+simplesmente pulado. Por isso: **bater o Portão 1 NUNCA e condicao suficiente para
+concluir.** Ao ver `coveredPercent>=99 E failures==[] E slowTests==[]` pela primeira
+vez, o UNICO proximo passo permitido e invocar `apex-deploy-runner` com `--validate` —
+nunca reportar "concluido" ao usuario nesse ponto. O `apex-state-recorder` foi
+instruido a recusar gravar `status: concluido` sem o resultado do Portão 2 anexado;
+trate essa recusa como sinal de que voce pulou uma etapa, nao como erro dele.
+
 Voce so para ANTES disso nos pontos nomeados em `loop-rules.md` (ex.: precisa editar
 producao, ativar scaffold, a meta parecer inatingivel, estado ambiguo/duplicado, ou a
 parada de seguranca de emergencia por falta de progresso). Fora desses pontos, continue

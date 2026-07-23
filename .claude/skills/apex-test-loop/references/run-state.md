@@ -73,10 +73,27 @@ de seguranca ficou sem base. Regras:
 2. **Ao fim de CADA iteracao do loop:** atualize `iteracao`, `cobertura_atual`,
    `historico_cobertura`, `linhas_nao_cobertas`, marque o que foi feito e escreva o
    **proximo passo** em uma frase concreta.
-3. **No encerramento:** `status: concluido` + resumo final.
+3. **No encerramento:** `status: concluido` + resumo final. **Trava estrutural
+   (aprendida em campo — ver abaixo): NUNCA escreva `status: concluido` com o campo
+   `portao_2_deploy_validate` diferente de `confirmado`.** Se o Portão 1 bateu mas o
+   Portão 2 (`sf project deploy validate`) ainda não rodou, o status correto é
+   `em_andamento` com o próximo passo = "rodar deploy validate (Portão 2)" — nunca
+   `concluido`.
 4. **Na parada de seguranca / bloqueio:** `status: pausado_bloqueado` + o motivo
    exato e o que o humano precisa decidir. E este arquivo que torna a retomada
    trivial depois que o humano resolver.
+
+### ⛔ Nunca conclua sem o Portão 2 registrado (aprendido em campo)
+
+Num run real (`invoiceSummary_ctr`), o orquestrador declarou `status: concluido` só com
+o dado do Portão 1 (`sf apex run test`, 99%, 22/22 passing) — o campo do Portão 2 nem
+existia no checkpoint, e ninguém rodou `sf project deploy validate`. O gap só foi
+percebido porque o humano perguntou explicitamente "o Portão 2 rodou?". Por isso o
+template abaixo tem o campo `portao_2_deploy_validate` como **obrigatório e visível**
+— não é mais possível escrever `concluido` sem decidir explicitamente esse valor.
+`apex-state-recorder`: se receber um veredito `concluido` do `apex-coverage-analyst`
+sem o resultado do `--validate` anexado, **recuse gravar como concluido** — grave
+`em_andamento` e devolva ao orquestrador pedindo o Portão 2.
 
 ## Regras
 
@@ -104,6 +121,8 @@ de seguranca ficou sem base. Regras:
 - historico_cobertura: —
 - linhas_nao_cobertas: —
 - cenarios: 0/0 escritos       <!-- escritos na classe de teste / total do inventario -->
+- portao_1_apex_run_test: pendente     <!-- pendente | confirmado (coveredPercent>=99 E failures==[] E slowTests==[]) -->
+- portao_2_deploy_validate: pendente   <!-- pendente | confirmado | falhou — so vira "confirmado" com deployWouldSucceed==true real do --validate. status:concluido EXIGE este campo == confirmado. -->
 - atualizado_em: <AAAA-MM-DD HH:MM>
 
 ## Inventário de cenários (o GATE DE PRÉ-DEPLOY preenche ANTES do 1º deploy)
@@ -144,6 +163,8 @@ de seguranca ficou sem base. Regras:
 - historico_cobertura: 0 -> 72 -> 88
 - linhas_nao_cobertas: [45, 77]
 - cenarios: 12/14 escritos
+- portao_1_apex_run_test: pendente
+- portao_2_deploy_validate: pendente
 - atualizado_em: 2026-07-19 14:32
 
 ## Inventário de cenários
