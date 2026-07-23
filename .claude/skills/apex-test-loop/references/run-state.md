@@ -1,5 +1,12 @@
 # Memoria de estado do run (checkpoint por classe)
 
+> **V2 (multiagente):** quem le/escreve este arquivo é sempre o agente
+> `apex-state-recorder` — é o único com permissão de escrita fora da classe de teste,
+> allowlist fechada (ver `.claude/agents/apex-state-recorder.md` e `classifyStateWrite`
+> em `scripts/guard.mjs`). Os demais agentes (`apex-orchestrator`, `apex-test-writer`,
+> `apex-deploy-runner`, `apex-coverage-analyst`) só leem este arquivo via ele, nunca
+> escrevem diretamente.
+
 A memoria externa do loop: um arquivo Markdown **por classe**, no projeto do usuario,
 que registra **onde o run parou** — para retomar apos interrupcao, troca de sessao ou
 compactacao de contexto, **sem recomecar do zero**.

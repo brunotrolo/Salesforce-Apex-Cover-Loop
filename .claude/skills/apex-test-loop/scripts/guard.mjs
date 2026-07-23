@@ -116,6 +116,65 @@ export function classifyWrite(filePath, existsOverride) {
   };
 }
 
+// --- Camada de ESTADO/APRENDIZADO (V2 multiagente) --------------------------
+// So o agente apex-state-recorder escreve infraestrutura fora da classe de teste.
+// Allowlist FECHADA — qualquer escrita dentro de `.apex-test-loop/` ou apontando
+// para os dois ledgers de aprendizado que NAO bater com um destes 4 padroes exatos
+// e bloqueada (evita arquivo solto poluindo a raiz do projeto ou pastas soltas):
+//   1) <projeto>/.apex-test-loop/state/<Classe>.md         (checkpoint vivo)
+//   2) <projeto>/.apex-test-loop/state/<Classe>.log.md      (historico opcional)
+//   3) .../apex-test-loop/RECOMMENDATIONS.md                (friccao da skill)
+//   4) .../apex-test-loop/references/apex-test-loop-recommendations.md (padrao agnostico)
+const STATE_DIR_RE = /(^|[\\/])\.apex-test-loop[\\/]/;
+// Nome de classe Apex: identificador simples (letras/numeros/underscore), sem
+// sufixos de "copia/versao paralela" — isso e o que barra CaseHandler-Copia.md,
+// CaseHandler-backup.md, CaseHandler-2026-07-19.md etc.
+const STATE_ALLOWED_RE = [
+  /(^|[\\/])\.apex-test-loop[\\/]state[\\/][A-Za-z0-9_]+\.md$/,
+  /(^|[\\/])\.apex-test-loop[\\/]state[\\/][A-Za-z0-9_]+\.log\.md$/,
+];
+const RECOMMENDATIONS_ALLOWED_RE = [
+  /(^|[\\/])apex-test-loop[\\/]RECOMMENDATIONS\.md$/i,
+  /(^|[\\/])apex-test-loop[\\/]references[\\/]apex-test-loop-recommendations\.md$/i,
+];
+// Nomes de arquivo que sugerem "mais um lugar de anotar estado/licao" fora da
+// allowlist — bloqueados mesmo se caem dentro de references/ (que humanos tambem
+// editam legitimamente; so barramos o padrao de nome tipico de despejo de agente).
+const STRAY_STATE_NAME_RE = /(recommend|licao|licoes|lesson|notes?|log|state|historico|history)[^\\/]*\.md$/i;
+
+export function classifyStateWrite(filePath) {
+  const p = String(filePath || '');
+  if (!p.toLowerCase().endsWith('.md')) return { blocked: false };
+
+  if (STATE_DIR_RE.test(p)) {
+    if (STATE_ALLOWED_RE.some((re) => re.test(p))) return { blocked: false };
+    return {
+      blocked: true,
+      decision: 'deny',
+      why:
+        'escrita dentro de .apex-test-loop/ fora do padrao permitido (' +
+        baseName(p) +
+        '). So state/<Classe>.md e state/<Classe>.log.md sao permitidos — nada de copias, ' +
+        'backups ou arquivos soltos (isso e trabalho do apex-state-recorder, allowlist fechada)',
+    };
+  }
+
+  if (/[\\/]apex-test-loop[\\/]/.test(p) && STRAY_STATE_NAME_RE.test(baseName(p))) {
+    if (RECOMMENDATIONS_ALLOWED_RE.some((re) => re.test(p))) return { blocked: false };
+    return {
+      blocked: true,
+      decision: 'ask',
+      why:
+        'novo arquivo de aprendizado/estado fora dos dois ledgers permitidos (' +
+        baseName(p) +
+        '). Use RECOMMENDATIONS.md (friccao da skill) ou ' +
+        'references/apex-test-loop-recommendations.md (padrao agnostico) — nunca crie um terceiro lugar',
+    };
+  }
+
+  return { blocked: false };
+}
+
 function baseName(p) {
   const parts = String(p).split(/[\\/]/);
   return parts[parts.length - 1] || String(p);
@@ -164,6 +223,7 @@ function runHook() {
       verdict = classify(ti.command);
     } else if (ti.file_path !== undefined) {
       verdict = classifyWrite(ti.file_path);
+      if (!verdict.blocked) verdict = classifyStateWrite(ti.file_path);
     } else {
       // fallback: varre o JSON inteiro por padrao de comando destrutivo
       verdict = classify(JSON.stringify(ti));

@@ -548,4 +548,45 @@ existe tanto no repositorio-casa quanto na copia dentro do seu projeto Salesforc
   `runtime-blockers.md` (secao 1) explica a intermitencia por carga. Distinto da Trava 5
   ("teste falhando"): esta camada pega o teste que **ainda nao falhou, mas vai**.
 
-<!-- A skill anexa novas propostas ABAIXO desta linha, como R-0037, R-0038... -->
+### R-0037 — V2: arquitetura multiagente (orquestrador + 4 especialistas)
+- **Status:** 🟡 Proposta (planejada com o usuario, aguardando homologacao na branch V2)
+- **Data:** 2026-07-23
+- **Gatilho:** o `SKILL.md` unico concentrava orquestracao + regras de negocio + craft,
+  crescendo para 550+ linhas e tornando dificil auditar/testar cada responsabilidade
+  isoladamente. O usuario pediu decompor em um agente orquestrador 100% autonomo mais
+  4 subagentes especialistas (escrever, deploy/rodar, analisar cobertura, gravar
+  estado/aprendizado), com paralelismo so onde faz sentido (state-recorder da iteracao
+  N em paralelo ao inicio da escrita da N+1; classes diferentes em paralelo entre si;
+  nunca escrever/rodar/analisar fora de ordem dentro de UMA classe).
+- **Problema evitado:** decisao de negocio duplicada/divergente entre agentes (ex.:
+  cada um interpretando "concluido" do seu jeito) e arquivos de estado/aprendizado
+  espalhados pelo projeto se qualquer agente pudesse escrever livremente.
+- **Melhoria aplicada:**
+  1. `references/loop-rules.md` criado como **fonte unica** de regras de negocio
+     (meta, criterio de conclusao objetivo, travas, pontos de decisao humana, regra do
+     platô, portao de estabilidade) — todos os 5 agentes leem daqui, nenhum reimplementa.
+  2. `.claude/agents/apex-orchestrator.md`, `apex-test-writer.md`,
+     `apex-deploy-runner.md`, `apex-coverage-analyst.md`, `apex-state-recorder.md`
+     criados com responsabilidade unica cada um (tabela "quem decide o que" em
+     `loop-rules.md`).
+  3. **Ajuste do usuario sobre autonomia:** o orquestrador e 100% autonomo — o UNICO
+     criterio normal de parada por sucesso e `coveredPercent>=99 E failures==[] E
+     slowTests==[]` vindo do dado real da ORG; o limite de 6 iteracoes deixa de ser
+     "parada normal" e vira parada de emergencia (mantendo o relatorio ao humano).
+  4. `SKILL.md` enxugado para so apontar para o orquestrador + a tabela de agentes,
+     removendo a duplicacao de regras que agora moram em `loop-rules.md`.
+  5. `apex-state-recorder` e o **unico** agente com permissao de escrita fora da
+     classe de teste, com allowlist fechada de 4 caminhos (`state/<Classe>.md`,
+     `state/<Classe>.log.md`, `RECOMMENDATIONS.md`,
+     `references/apex-test-loop-recommendations.md`) — reforcada no `guard.mjs`
+     (`classifyStateWrite`) independente do prompt, para impedir arquivo solto
+     poluindo a raiz do projeto ou pastas arbitrarias (bloqueia nomes tipo
+     `-Copia`/`-backup`/diretorios novos dentro de `.apex-test-loop/`).
+  6. `.apex-test-loop/` adicionado ao `.gitignore` do template do projeto (estado
+     local, nunca versionado — mesma logica do `RECOMMENDATIONS.md`).
+- **Proximo passo:** homologar na branch `claude/apex-test-loop-v2` (deploy real numa
+  org de teste, rodando pelo menos uma classe do zero e uma retomada de estado) antes
+  de mergear com `main`. Se a homologacao confirmar o comportamento, mover status para
+  `✅ Aplicada`.
+
+<!-- A skill anexa novas propostas ABAIXO desta linha, como R-0038, R-0039... -->
