@@ -1,11 +1,11 @@
 # Memoria de estado do run (checkpoint por classe)
 
-> **V2 (multiagente):** quem le/escreve este arquivo é sempre o agente
-> `apex-state-recorder` — é o único com permissão de escrita fora da classe de teste,
-> allowlist fechada (ver `.claude/agents/apex-state-recorder.md` e `classifyStateWrite`
-> em `scripts/guard.mjs`). Os demais agentes (`apex-orchestrator`, `apex-test-writer`,
-> `apex-deploy-runner`, `apex-coverage-analyst`) só leem este arquivo via ele, nunca
-> escrevem diretamente.
+> **Escrita de estado (allowlist fechada):** o agente do loop grava o checkpoint e o
+> aprendizado SOMENTE nos caminhos da allowlist (ver "Onde fica" abaixo e
+> `classifyStateWrite` em `scripts/guard.mjs`, que reforça isso independente do prompt).
+> Nunca crie arquivos soltos na raiz do projeto, cópias (`-Copia`/`-backup`) ou pastas
+> novas para acomodar estado — se algo não cabe nos caminhos permitidos, anexe como
+> seção dentro do arquivo mais próximo.
 
 A memoria externa do loop: um arquivo Markdown **por classe**, no projeto do usuario,
 que registra **onde o run parou** — para retomar apos interrupcao, troca de sessao ou
@@ -85,15 +85,14 @@ de seguranca ficou sem base. Regras:
 
 ### ⛔ Nunca conclua sem o Portão 2 registrado (aprendido em campo)
 
-Num run real (`invoiceSummary_ctr`), o orquestrador declarou `status: concluido` só com
-o dado do Portão 1 (`sf apex run test`, 99%, 22/22 passing) — o campo do Portão 2 nem
-existia no checkpoint, e ninguém rodou `sf project deploy validate`. O gap só foi
-percebido porque o humano perguntou explicitamente "o Portão 2 rodou?". Por isso o
-template abaixo tem o campo `portao_2_deploy_validate` como **obrigatório e visível**
-— não é mais possível escrever `concluido` sem decidir explicitamente esse valor.
-`apex-state-recorder`: se receber um veredito `concluido` do `apex-coverage-analyst`
-sem o resultado do `--validate` anexado, **recuse gravar como concluido** — grave
-`em_andamento` e devolva ao orquestrador pedindo o Portão 2.
+Num run real (`invoiceSummary_ctr`), o loop declarou `status: concluido` só com o dado
+do Portão 1 (`sf apex run test`, 99%, 22/22 passing) — o campo do Portão 2 nem existia
+no checkpoint, e ninguém rodou `sf project deploy validate`. O gap só foi percebido
+porque o humano perguntou explicitamente "o Portão 2 rodou?". Por isso o template abaixo
+tem o campo `portao_2_deploy_validate` como **obrigatório e visível** — não é mais
+possível escrever `concluido` sem decidir explicitamente esse valor. Se você bateu o
+Portão 1 mas ainda não rodou o `--validate`, o status correto é `em_andamento` com o
+`Proximo passo` = "rodar deploy validate (Portão 2)" — nunca `concluido`.
 
 ## Regras
 

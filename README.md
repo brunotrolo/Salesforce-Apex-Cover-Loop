@@ -22,12 +22,14 @@
 
 Arquitetura **hibrida** para o Claude Code criar **classes de teste Apex** no **minimo viavel deployavel**: meta padrao `>= 99%` de cobertura com **todos os testes passando** (o que Salesforce exige para deploy). Quer verificacao exaustiva? Use `--rigoroso`.
 
-**V2 — orquestração multiagente:** um `apex-orchestrator` 100% autônomo coordena 4 subagentes especialistas (escrever, deploy, analisar, gravar estado) em ciclo fechado, ate bater os **dois portões de conclusão**:
+**Loop de contexto único + governança em fonte única:** um único agente conduz o ciclo
+inteiro (escrever → deploy → medir → analisar → melhorar) numa só sessão, acumulando
+contexto do começo ao fim, ate bater os **dois portões de conclusão**:
 
 ```
-apex-test-writer  →  apex-deploy-runner  →  apex-coverage-analyst
-       ↑                                            ↓
-       +---------- prompt dirigido, em loop ---------+
+escrever teste → deploy (sf) → rodar + cobertura → analisar linhas descobertas
+      ↑                                                          ↓
+      +---------------- melhorar, em loop ------------------------+
                           ↓
      Portão 1 (>=99% via sf apex run test, a cada iteração)
                           ↓
@@ -38,9 +40,15 @@ apex-test-writer  →  apex-deploy-runner  →  apex-coverage-analyst
 
 **Como funciona:**
 - **Craft** (mocks, asserts, bulk, DML, dados de teste) → skills oficiais Salesforce importadas neste projeto.
-- **Orquestracao** (loop multiagente, travas de seguranca, guiado em PT, scaffold) → nossa `apex-test-loop`, coordenada pelo `apex-orchestrator` e seus 4 subagentes em `.claude/agents/`.
+- **Orquestracao** (o loop, travas de seguranca, guiado em PT, scaffold) → nossa `apex-test-loop`, com toda regra de negócio numa fonte única (`references/loop-rules.md`).
 
-Voce informa uma classe → o orquestrador entra num ciclo fechado ate atingir a meta com testes passando **e** a confirmação oficial de deployabilidade (`deploy validate`). Se travar, ele diagnostica e explica.
+Voce informa uma classe → o loop entra num ciclo fechado ate atingir a meta com testes passando **e** a confirmação oficial de deployabilidade (`deploy validate`). Se travar, ele diagnostica e explica.
+
+> **Nota de arquitetura:** uma versão intermediária dividiu o loop em 5 subagentes
+> (orquestrador + 4 especialistas). A passagem de contexto entre eles se mostrou frágil
+> sob interrupção e com modelos menores, então voltamos ao **contexto único** — mantendo
+> a governança estrutural (fonte única de regras, dois portões, guard). Detalhes em
+> `RECOMMENDATIONS.md` (R-0040/R-0042).
 
 ---
 

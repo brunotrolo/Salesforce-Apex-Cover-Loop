@@ -705,4 +705,42 @@ existe tanto no repositorio-casa quanto na copia dentro do seu projeto Salesforc
   o `deploy validate` sozinho e só fala com o humano no veredito final (concluído com
   Portão 2 confirmado, ou bloqueado se o validate falhar).
 
-<!-- A skill anexa novas propostas ABAIXO desta linha, como R-0042, R-0043... -->
+### R-0042 — Volta ao contexto único (híbrido): 1 agente + governança da V2
+- **Status:** 🟡 Proposta (na branch `claude/apex-test-loop-hibrido`, aguardando homologação)
+- **Data:** 2026-07-24
+- **Gatilho:** após a homologação da V2 acumular 3 defeitos seguidos (R-0039 concluir sem
+  Portão 2, R-0040 agente principal assumir o loop, R-0041 pedir permissão para o Portão
+  2), o usuário observou que a versão monolítica anterior "parecia mais garantida e não
+  quebrava". A análise confirmou: os 3 defeitos têm a MESMA raiz — cada passo da V2 é um
+  `Task` separado, e toda fronteira de `Task` é (a) um ponto onde o harness corta por
+  teto de tempo/tool-calls e (b) onde um modelo fraco perde contexto. O monolítico tinha
+  um único contexto acumulando tudo, sem "entre passos".
+- **Problema:** a decomposição em 5 subagentes ajuda o AUTOR (auditabilidade, separação
+  de papéis) mas cobra da EXECUÇÃO (fragilidade de handoff, mais pontos de quebra, pior
+  com DeepSeek Flash). Para um loop sequencial apertado sobre UMA classe, o saldo ficou
+  negativo — ainda mais no alvo de custo zero (OpenCode + modelo free).
+- **Decisão do usuário (aprovada):** híbrido — colapsar os 5 agentes num agente de
+  **contexto único** que conduz o loop inteiro inline (robustez do monolítico), MANTENDO
+  a governança estrutural que a V2 trouxe de bom.
+- **Melhoria aplicada:**
+  1. `SKILL.md` reescrito como executor de contexto único: Passo 0 → gate de pré-deploy
+     → loop (escrever→deploy→analisar→gravar) → dois portões → conclusão. Sem `Task`,
+     sem subagentes. Aponta para `loop-rules.md` (regras) e delega craft às skills oficiais.
+  2. Os 5 arquivos `.claude/agents/apex-*.md` removidos (a parte frágil).
+  3. `loop-rules.md`, `run-state.md`, `guard.mjs` (comentários) atualizados para o modelo
+     de agente único — SEM perder nenhuma regra: fonte única, dois portões estruturais,
+     allowlist de estado, gate de pré-deploy, regra do platô, portão de estabilidade e
+     travas de segurança seguem idênticos.
+  4. Governança preservada 1:1: `loop-rules.md` (fonte única), campos `portao_1_*`/
+     `portao_2_*` no checkpoint, `guard.mjs` (deny destrutivo + ask sobrescrita produção
+     + allowlist de estado), `apex-coverage.mjs` (sinal determinístico).
+- **Observações abertas (candidatas a hardening, não bloqueiam o híbrido):** (a) o
+  `apex-coverage.mjs` travou no timeout de 60s do harness na máquina do usuário (run
+  síncrono + testes de callout) — o `SKILL.md` agora orienta timeout ≥300s; (b) o parser
+  do modo `--validate` lê a estrutura da Metadata API e nunca foi exercitado end-to-end
+  (no run real o usuário rodou o `deploy validate` na mão) — validar na homologação.
+- **Próximo passo:** homologar o híbrido numa org real (1ª execução, retomada, bloqueio)
+  e confirmar que rodar num contexto só elimina os defeitos R-0039/40/41. Se confirmar,
+  mover R-0037/R-0038/R-0042 conforme o resultado e mergear na `main`.
+
+<!-- A skill anexa novas propostas ABAIXO desta linha, como R-0043, R-0044... -->

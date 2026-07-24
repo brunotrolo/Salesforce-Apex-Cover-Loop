@@ -116,9 +116,10 @@ export function classifyWrite(filePath, existsOverride) {
   };
 }
 
-// --- Camada de ESTADO/APRENDIZADO (V2 multiagente) --------------------------
-// So o agente apex-state-recorder escreve infraestrutura fora da classe de teste.
-// Allowlist FECHADA — qualquer escrita dentro de `.apex-test-loop/` ou apontando
+// --- Camada de ESTADO/APRENDIZADO -------------------------------------------
+// A escrita de infraestrutura de estado/aprendizado (fora da classe de teste) so pode
+// cair nos 4 caminhos da allowlist FECHADA — qualquer escrita dentro de
+// `.apex-test-loop/` ou apontando
 // para os dois ledgers de aprendizado que NAO bater com um destes 4 padroes exatos
 // e bloqueada (evita arquivo solto poluindo a raiz do projeto ou pastas soltas):
 //   1) <projeto>/.apex-test-loop/state/<Classe>.md         (checkpoint vivo)
@@ -155,7 +156,7 @@ export function classifyStateWrite(filePath) {
         'escrita dentro de .apex-test-loop/ fora do padrao permitido (' +
         baseName(p) +
         '). So state/<Classe>.md e state/<Classe>.log.md sao permitidos — nada de copias, ' +
-        'backups ou arquivos soltos (isso e trabalho do apex-state-recorder, allowlist fechada)',
+        'backups ou arquivos soltos (allowlist fechada de estado)',
     };
   }
 

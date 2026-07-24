@@ -19,7 +19,7 @@ Referência detalhada da skill. Para o começo rápido (2 min), veja o **[README
 Arquitetura **hibrida**:
 
 - **Craft (o "como" fazer)** vem das **skills oficiais da Salesforce** (`forcedotcom/sf-skills`, Apache-2.0) importadas neste projeto — mocks, asserts, data factory, bulk, async, DML, objetos/campos, debug de logs.
-- **Orquestracao (o nosso valor)** e a skill **`apex-test-loop`**: o **agent loop multiagente** de cobertura, as **travas de seguranca**, o **modo guiado em portugues** e o **modo scaffold** (dev/treino).
+- **Orquestracao (o nosso valor)** e a skill **`apex-test-loop`**: o **agent loop de contexto único** de cobertura, as **travas de seguranca**, o **modo guiado em portugues** e o **modo scaffold** (dev/treino).
 
 ```
 escrever teste  →  deploy (sf)  →  rodar teste + cobertura  →  ler linhas nao cobertas
@@ -36,21 +36,26 @@ escrever teste  →  deploy (sf)  →  rodar teste + cobertura  →  ler linhas 
 
 ---
 
-## Arquitetura V2 — orquestração multiagente
+## Arquitetura — loop de contexto único + governança em fonte única
 
-A partir da v2, o loop deixou de ser uma skill monolítica e virou **1 orquestrador 100% autônomo + 4 subagentes especialistas** (`.claude/agents/`). Toda regra de negócio (meta, critério de conclusão, travas) vive numa **fonte única** — `.claude/skills/apex-test-loop/references/loop-rules.md` — lida por todos os agentes, para não haver deriva de regra entre eles.
+O loop é conduzido por **um único agente**, numa só sessão, que executa o ciclo inteiro
+(escrever → deploy → medir → analisar → gravar → repetir) acumulando contexto do começo
+ao fim. Toda regra de negócio (meta, critério de conclusão, travas) vive numa **fonte
+única** — `.claude/skills/apex-test-loop/references/loop-rules.md` — para não haver deriva.
 
-| Agente | Papel |
-|---|---|
-| `apex-orchestrator` | Coordena o ciclo fechado, **100% autônomo**, único que decide parar/continuar |
-| `apex-test-writer` | Escreve/ajusta `<Classe>Test.cls` (delega craft às skills oficiais); nunca toca produção |
-| `apex-deploy-runner` | Deploy + roda teste + devolve cobertura (JSON determinístico da ORG) |
-| `apex-coverage-analyst` | Interpreta o resultado e decide continuar/concluído/bloqueado (regra do platô, circuit-breaker) |
-| `apex-state-recorder` | Único agente que grava checkpoint e aprendizado — allowlist fechada de 4 caminhos |
+> **Por que contexto único (e não multiagente).** Uma versão intermediária dividiu o loop
+> em 5 subagentes (orquestrador + escritor + deploy + analista + gravador de estado). Na
+> homologação, a passagem de contexto entre eles se mostrou frágil: cada fronteira entre
+> subagentes é (a) um ponto onde o harness pode cortar por teto de tempo/tool-calls e (b)
+> onde um modelo menor perde contexto — o que gerou defeitos reais (concluir sem o Portão
+> 2, o agente de topo assumir o loop, pedir permissão para um passo obrigatório). O
+> monolítico não tinha "entre passos". Voltamos ao contexto único **mantendo** a
+> governança estrutural que a divisão trouxe de bom. Histórico em `RECOMMENDATIONS.md`
+> (R-0037 a R-0042).
 
 ### Dois portões de conclusão
 
-O orquestrador só declara `concluido` depois de **dois portões objetivos**, medidos sempre na ORG real (nunca estimados):
+O loop só declara `concluido` depois de **dois portões objetivos**, medidos sempre na ORG real (nunca estimados):
 
 - **Portão 1** (a cada iteração, rápido): `sf apex run test` retorna `coveredPercent >= 99` **e** `failures == []` **e** `slowTests == []`.
 - **Portão 2** (UMA vez, só quando o Portão 1 é atingido): confirmação oficial via `sf project deploy validate --test-level RunSpecifiedTests` (check-only, não grava nada na org) — o **mesmo gate que um deploy real de produção** usa. Só conclui com `deployWouldSucceed == true` **e** `coveredPercent >= 99` **e** `failures == []`.
@@ -179,16 +184,9 @@ O bloqueio por texto e forte para comandos diretos, mas nao e uma fronteira abso
 ## Estrutura
 
 ```
-.claude/agents/                     # V2: orquestrador + 4 subagentes especialistas
-  apex-orchestrator.md              # coordena o ciclo, 100% autonomo, decide parar/continuar
-  apex-test-writer.md               # escreve/ajusta <Classe>Test.cls
-  apex-deploy-runner.md             # deploy + roda teste + devolve cobertura (JSON)
-  apex-coverage-analyst.md          # interpreta resultado, decide continuar/concluido/bloqueado
-  apex-state-recorder.md            # unico agente com escrita fora da classe de teste
-
 .claude/skills/
-  apex-test-loop/                   # A NOSSA skill (porta de entrada)
-    SKILL.md                        # trigger + tabela de agentes + referencias (enxuto, aponta ao orquestrador)
+  apex-test-loop/                   # A NOSSA skill (porta de entrada + executor do loop)
+    SKILL.md                        # conduz o loop de contexto unico (Passo 0 -> gate -> loop -> 2 portoes)
     RECOMMENDATIONS.md              # livro-razao de autoaprendizado
     scripts/
       apex-coverage.mjs             # deploy + run test (+ modo --validate) + parse -> JSON com linhas nao cobertas
@@ -217,7 +215,7 @@ O bloqueio por texto e forte para comandos diretos, mas nao e uma fronteira abso
   VENDOR-sf-skills-LICENSE-Apache-2.0.txt
 ```
 
-O craft (mocks, asserts, data factory, bulk, async, DML) vive nas skills oficiais — por isso a nossa `apex-test-loop` ficou enxuta (so o trigger + delegacao aos agentes). A logica de negocio em si (meta, portoes, travas) vive so em `loop-rules.md`; os agentes em `.claude/agents/` sao pura orquestracao/execucao.
+O craft (mocks, asserts, data factory, bulk, async, DML) vive nas skills oficiais — por isso a nossa `apex-test-loop` ficou enxuta. A logica de negocio em si (meta, portoes, travas) vive so em `loop-rules.md`; o `SKILL.md` é o executor que conduz o loop num contexto único, lendo essas regras.
 
 ---
 

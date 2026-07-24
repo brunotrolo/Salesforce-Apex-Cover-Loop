@@ -1,10 +1,8 @@
-# Regras do loop — fonte única (lida por todos os agentes)
+# Regras do loop — fonte única
 
-Este arquivo é a **única** fonte de regras de negócio do `apex-test-loop`. O
-orquestrador e os 4 subagentes especialistas (`apex-test-writer`,
-`apex-deploy-runner`, `apex-coverage-analyst`, `apex-state-recorder`) leem daqui —
-nenhum deles deve reimplementar ou reinterpretar estas regras no próprio prompt.
-Se uma regra precisar mudar, muda-se **aqui**, uma vez só.
+Este arquivo é a **única** fonte de regras de negócio do `apex-test-loop`. O agente que
+conduz o loop (contexto único — ver `SKILL.md`) lê daqui e nunca reimplementa ou
+reinterpreta estas regras. Se uma regra precisar mudar, muda-se **aqui**, uma vez só.
 
 ## Meta de qualidade
 
@@ -31,10 +29,9 @@ coveredPercent >= 99  E  failures == []  E  slowTests == []
 ```
 
 **Portão 2 — confirmação oficial de deployabilidade (UMA vez, só ao bater o
-Portão 1):** o loop NÃO conclui direto no Portão 1. Quando o Portão 1 é atingido, o
-`apex-deploy-runner` roda a **validação oficial de deploy** — o mesmo gate que a
-Salesforce aplica a um deploy real de produção (cobertura é o que prevalece para
-deployar, não só "os testes passaram"):
+Portão 1):** o loop NÃO conclui direto no Portão 1. Quando o Portão 1 é atingido, você
+roda a **validação oficial de deploy** — o mesmo gate que a Salesforce aplica a um deploy
+real de produção (cobertura é o que prevalece para deployar, não só "os testes passaram"):
 
 ```bash
 node .claude/skills/apex-test-loop/scripts/apex-coverage.mjs \
@@ -75,11 +72,10 @@ Regras:
 - Só existe pergunta ao humano DEPOIS do Portão 2 se ele **falhar** por limitação de
   ambiente que exija decisão (aí sim vira `bloqueado`) — nunca ANTES de rodá-lo.
 
-## Autonomia do orquestrador (V2)
+## Autonomia — 100% autônomo
 
-O `apex-orchestrator` é **100% autônomo** — não pausa para aprovação a cada
-iteração. Ele só para nos pontos nomeados abaixo (decisão humana) ou no critério de
-conclusão acima.
+O loop é **100% autônomo** — não pausa para aprovação a cada iteração. Só para nos
+pontos nomeados abaixo (decisão humana) ou no critério de conclusão acima.
 
 ## Pontos nomeados de decisão humana (únicas pausas legítimas)
 
@@ -107,8 +103,8 @@ infinito, não uma forma aceitável de "terminar" o trabalho.
 ## Regra do platô
 
 Se `coveredPercent` ficar parado por 2 iterações seguidas enquanto testes crescem,
-o `apex-coverage-analyst` para de gerar prompts genéricos ("melhore a cobertura") e
-passa a nomear a linha/ramo exato ainda descoberto em cada prompt.
+pare de mirar cobertura "genérica" ("melhore a cobertura") e passe a nomear a linha/ramo
+exato ainda descoberto em cada iteração.
 
 ## Portão de estabilidade
 
@@ -129,21 +125,18 @@ concluir — mesmo com cobertura e testes 100% passando.
    apagar/mover `.cls`/`.trigger`) — reforçado por `settings.json` (deny) e
    `scripts/guard.mjs` (hook `PreToolUse`), independente do prompt.
 
-## Divisão de responsabilidade (quem decide o quê)
+## Ordem do ciclo (o que nunca inverter)
 
-| Agente | Decide | Nunca decide |
-|---|---|---|
-| `apex-orchestrator` | parar/continuar o loop; ordem de invocação | qualidade do teste; interpretação de cobertura |
-| `apex-test-writer` | como escrever o cenário pedido | se o loop deve parar; se a meta deve baixar |
-| `apex-deploy-runner` | nada — só executa e devolve dado bruto | qualquer interpretação do resultado |
-| `apex-coverage-analyst` | próximo passo (continuar/concluído/bloqueado) | abaixar a meta; pular trava de segurança |
-| `apex-state-recorder` | onde e como registrar (dentro da allowlist) | qual checkpoint duplicado é válido |
+Um único agente conduz tudo, mas a ORDEM dos passos é obrigatória — testar algo ainda
+não escrito é erro lógico:
 
-## Paralelismo — quando faz sentido
+1. **Escrever/ajustar** a classe de teste (só a de TESTE, nunca produção).
+2. **Deploy + rodar + medir** (via `apex-coverage.mjs`) — só depois de o passo 1 estar
+   escrito.
+3. **Analisar** o JSON bruto — só com o dado real da ORG, nunca por estimativa.
+4. **Gravar o checkpoint** — a cada iteração, de verdade.
 
-- Escrever → rodar → analisar é **sequencial** dentro de uma classe (nunca testar
-  algo ainda não escrito).
-- `apex-state-recorder` pode gravar a iteração N em paralelo ao início da escrita da
-  iteração N+1 (não há dependência de dado).
-- Classes diferentes, cada uma com seu loop sequencial próprio, podem rodar em
-  paralelo entre si.
+Nunca pule direto para "concluído" com base em impressão: o critério é objetivo (dois
+portões, dado real). Se estiver cobrindo **mais de uma classe** na sessão, cada uma tem
+seu próprio loop sequencial; classes diferentes (arquivos diferentes) podem ser tocadas
+em turnos separados sem risco.
