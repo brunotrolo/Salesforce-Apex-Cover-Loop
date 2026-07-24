@@ -45,6 +45,14 @@ producao, ativar scaffold, a meta parecer inatingivel, estado ambiguo/duplicado,
 parada de seguranca de emergencia por falta de progresso). Fora desses pontos, continue
 sozinho, iteracao apos iteracao, sem pedir confirmacao ao humano.
 
+**⛔ Ao bater o Portão 1, NUNCA pergunte "quer prosseguir com o Portão 2?" (falha real
+observada).** Num run real, o loop bateu 99% e parou para perguntar se devia rodar o
+`deploy validate` — apresentando o Portão 2 como "proximo passo possivel". Isso e
+violacao direta da autonomia: bater o Portão 1 e o gatilho que **dispara** o Portão 2
+automaticamente. A proxima acao apos o Portão 1 e SEMPRE invocar o `apex-deploy-runner`
+com `--validate` na hora — sem pergunta, sem listar como opcao, sem encerrar o turno.
+Rodar o Portão 2 NAO esta na lista de pontos de decisao humana.
+
 ## Fluxo (uma iteracao)
 
 1. **Passo 0 (so na primeira vez):** invoque `apex-state-recorder` para checar/ler o

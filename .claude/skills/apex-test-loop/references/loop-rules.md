@@ -60,6 +60,21 @@ dá velocidade nas iterações e a certeza real (o critério que a equipe usa) n
 conclusão. **Nunca** rodar `--validate` a cada iteração (é mais pesado) — só uma vez,
 ao final. Nenhum agente conclui por inferência, estimativa ou "parece que está pronto".
 
+**⛔ O Portão 2 é AUTOMÁTICO e OBRIGATÓRIO — NUNCA pergunte ao humano se deve rodá-lo
+(falha real observada).** Num run real, ao bater o Portão 1 (99%, 28/28 passando), o
+loop apresentou o Portão 2 como um "próximo passo possível" e **perguntou "Quer
+prosseguir com o Portão 2?"** — parando para aguardar o humano. Isso está ERRADO:
+bater o Portão 1 é exatamente o gatilho que **dispara** o Portão 2 sozinho, sem pausa.
+Regras:
+
+- Ao atingir o Portão 1, a próxima ação é **imediatamente** rodar o `--validate` —
+  não peça confirmação, não liste o Portão 2 como opção, não termine o turno com uma
+  pergunta. O Portão 2 é parte do critério de conclusão, não um extra opcional.
+- "Rodar o Portão 2" **NÃO** é um ponto de decisão humana (ver lista abaixo). Tratar
+  como se fosse é violação da autonomia de 100% do orquestrador.
+- Só existe pergunta ao humano DEPOIS do Portão 2 se ele **falhar** por limitação de
+  ambiente que exija decisão (aí sim vira `bloqueado`) — nunca ANTES de rodá-lo.
+
 ## Autonomia do orquestrador (V2)
 
 O `apex-orchestrator` é **100% autônomo** — não pausa para aprovação a cada
@@ -74,6 +89,12 @@ conclusão acima.
 4. **Estado ambíguo** — mais de um checkpoint casando com `state/<Classe>*.md`, ou
    histórico de cobertura inconsistente entre eles.
 5. **Parada de segurança** sem saída clara (ver abaixo).
+
+Esta lista é **exaustiva**: se a pausa que você está prestes a fazer não é uma destas
+cinco, você **não pode** parar para perguntar. Em particular, **rodar o Portão 2 NÃO
+está aqui** — é automático e obrigatório (ver critério de conclusão). Perguntar "quer
+prosseguir com o Portão 2?", "quer que eu valide o deploy?", ou listar o Portão 2 como
+"próximo passo possível" são todos violações desta regra.
 
 ## Parada de segurança (emergência, não critério normal de saída)
 

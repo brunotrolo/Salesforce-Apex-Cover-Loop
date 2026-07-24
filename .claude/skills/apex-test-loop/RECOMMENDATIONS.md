@@ -679,4 +679,30 @@ existe tanto no repositorio-casa quanto na copia dentro do seu projeto Salesforc
   (não só a primeira) passa pelos subagentes — e que interrupções do orquestrador
   resultam em **reinvocação**, não em o agente principal assumir.
 
-<!-- A skill anexa novas propostas ABAIXO desta linha, como R-0041, R-0042... -->
+### R-0041 — V2 homologação: loop perguntou "quer prosseguir com o Portão 2?" (violação de autonomia)
+- **Status:** 🟢 Aprovada e aplicada nesta mesma rodada
+- **Data:** 2026-07-23
+- **Gatilho:** run de homologação da V2 via OpenCode + DeepSeek V4 Flash Free
+  (`invoiceSummary_ctr`). Ao bater o Portão 1 (99%, 28/28 passando), o loop apresentou
+  o Portão 2 como um item de uma lista "Próximos passos possíveis" e **perguntou ao
+  humano "Quer prosseguir com o Portão 2?"** — parando para aguardar resposta. O humano
+  respondeu "sim" e só então rodou o `deploy validate`.
+- **Problema:** o Portão 2 é parte do critério de conclusão — automático e obrigatório
+  quando o Portão 1 bate — não um ponto de decisão humana. Perguntar viola a autonomia
+  de 100% do orquestrador e transforma um passo mandatório em opcional (risco de o
+  usuário dizer "não" e a classe ser declarada pronta sem a confirmação oficial de
+  deployabilidade). Modelo fraco (DeepSeek Flash) amplifica a tendência de "pedir
+  permissão", mas a regra tem de ser explícita para qualquer modelo.
+- **Melhoria aplicada:**
+  1. `loop-rules.md` (critério de conclusão): bloco novo "O Portão 2 é AUTOMÁTICO e
+     OBRIGATÓRIO — NUNCA pergunte ao humano se deve rodá-lo", citando os sintomas
+     exatos (pergunta de confirmação, listar como "próximo passo possível").
+  2. `loop-rules.md` (pontos de decisão humana): a lista das 5 pausas legítimas agora
+     é declarada **exaustiva**, com nota de que rodar o Portão 2 não está nela.
+  3. `apex-orchestrator.md`: aviso explícito citando a falha — após o Portão 1, a
+     próxima ação é sempre invocar `--validate` na hora, sem pergunta.
+- **Próximo passo:** re-rodar e confirmar, pelo trace, que ao bater 99% o loop dispara
+  o `deploy validate` sozinho e só fala com o humano no veredito final (concluído com
+  Portão 2 confirmado, ou bloqueado se o validate falhar).
+
+<!-- A skill anexa novas propostas ABAIXO desta linha, como R-0042, R-0043... -->
